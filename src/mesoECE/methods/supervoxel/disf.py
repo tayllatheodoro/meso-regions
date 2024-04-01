@@ -1,16 +1,17 @@
 import os
 import numpy as np
+from pathlib import Path
+
 from src.mesoECE.data_structure import Patient
 from src.mesoECE.methods import AbstractMethod
-from pathlib import Path
 
 
 class DISF(AbstractMethod):
-    def __init__(self, path: Path, reference_t: int, n_init: int, n_final: int,
+    def __init__(self, path: Path, ref_t: int, n_init: int, n_final: int,
                  p_seeds_init: float = 0.1, p_seeds_final: float = 0.01):
         super().__init__()
         self.path_supervoxels = path
-        self.reference_t = reference_t
+        self.ref_t = ref_t
         self.n_init = n_init
         self.n_final = n_final
         self.thread_safe = True
@@ -25,7 +26,7 @@ class DISF(AbstractMethod):
             n_seeds_final = self.n_final
 
             if self.n_init == 0 or self.n_final == 0:
-                mask = patient.get_image(self.reference_t).get_mask(
+                mask = patient.get_image(self.ref_t).get_mask(
                     "pleural_region").data
                 volume = int(np.sum(mask))
                 if self.n_init == 0 and self.n_final == 0:
@@ -41,13 +42,13 @@ class DISF(AbstractMethod):
             if n_seeds_init > n_seeds_final:
                 # Input and output paths to call DISF
                 path_img = patient.get_image(
-                    self.reference_t).path / patient.get_image(
-                    self.reference_t).filename
-                path_mask = patient.get_image(self.reference_t).path_masks[
+                    self.ref_t).path / patient.get_image(
+                    self.ref_t).filename
+                path_mask = patient.get_image(self.ref_t).path_masks[
                                 'pleural_region'] / patient.get_image(
-                    self.reference_t).filename
+                    self.ref_t).filename
                 path_out_mask = self.path_supervoxels / patient.get_image(
-                    self.reference_t).filename
+                    self.ref_t).filename
 
                 # Apply DISF in Current Patient in Volume from reference image
                 # and save supervoxels mask

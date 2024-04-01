@@ -1,20 +1,18 @@
 import nibabel as nib
 import numpy as np
-
 from skimage.segmentation import slic
-
 from pathlib import Path
 
-from mesexp.data import Patient
-from mesexp.methods.abstract_method import AbstractMethod
+from src.mesoECE.data_structure import Patient
+from src.mesoECE.methods import AbstractMethod
 
 
 class SLIC(AbstractMethod):
-    def __init__(self, path: Path, reference_t: int, n_segments: int,
+    def __init__(self, path: Path, ref_t: int, n_segments: int,
                  compactness: float, p_seeds_final: float = 0.01):
         super().__init__()
         self.path_supervoxels = path
-        self.reference_t = reference_t
+        self.ref_t = ref_t
         self.n_segments = n_segments
         self.compactness = compactness
         self.thread_safe = True
@@ -24,7 +22,7 @@ class SLIC(AbstractMethod):
     def apply(self, patient: Patient, **kwargs):
 
         try:
-            mask = patient.images(self.reference_t).masks["pleural_region"].data
+            mask = patient.get_image(self.ref_t).masks["pleural_region"].data
 
             # Get number of seeds
             n_seeds_final = self.n_segments
@@ -34,8 +32,8 @@ class SLIC(AbstractMethod):
             self.seeds.append([patient.id, 0, n_seeds_final])
 
             # Get Spacing
-            image = patient.images(self.reference_t).data
-            nifti_args = patient.images(self.reference_t).nifti_props
+            image = patient.get_image(self.ref_t).data
+            nifti_args = patient.get_image(self.ref_t).nifti_props
             image_header = nifti_args["header"]
             mri_spacing = image_header.get_zooms()
 
@@ -49,8 +47,8 @@ class SLIC(AbstractMethod):
             # Save supervoxels mask
             nib.save(nib.Nifti1Image(supervoxels_mask.astype(np.int32),
                                      **nifti_args),
-                     str(self.path_supervoxels / patient.images(
-                         self.reference_t).filename))
+                     str(self.path_supervoxels / patient.get_image(
+                         self.ref_t).filename))
 
             # Update patient path masks
             patient.path_masks['supervoxels'] = self.path_supervoxels
