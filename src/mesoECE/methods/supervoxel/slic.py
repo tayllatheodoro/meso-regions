@@ -1,0 +1,67 @@
+import nibabel as nib
+import numpy as np
+
+from skimage.segmentation import slic
+
+from pathlib import Path
+
+from mesexp.data import Patient
+from mesexp.methods.abstract_method import AbstractMethod
+
+
+class SLIC(AbstractMethod):
+    def __init__(self, path: Path, reference_t: int, n_segments: int,
+                 compactness: float, p_seeds_final: float = 0.01):
+        super().__init__()
+        self.path_supervoxels = path
+        self.reference_t = reference_t
+        self.n_segments = n_segments
+        self.compactness = compactness
+        self.thread_safe = True
+        self.p_seeds_final = p_seeds_final
+        self.seeds = []
+
+    def apply(self, patient: Patient, **kwargs):
+
+        try:
+            mask = patient.images(self.reference_t).masks["pleural_region"].data
+
+            # Get number of seeds
+            n_seeds_final = self.n_segments
+            if self.n_segments == 0:
+                volume = int(np.sum(mask))
+                n_seeds_final = int(volume * self.p_seeds_final)
+            self.seeds.append([patient.id, 0, n_seeds_final])
+
+            # Get Spacing
+            image = patient.images(self.reference_t).data
+            nifti_args = patient.images(self.reference_t).nifti_props
+            image_header = nifti_args["header"]
+            mri_spacing = image_header.get_zooms()
+
+            # Apply SLIC in Current Patient in Volume from reference image
+
+            supervoxels_mask = slic(image, mask=mask, channel_axis=None,
+                                    compactness=self.compactness,
+                                    n_segments=n_seeds_final,
+                                    spacing=mri_spacing,
+                                    start_label=1)
+            # Save supervoxels mask
+            nib.save(nib.Nifti1Image(supervoxels_mask.astype(np.int32),
+                                     **nifti_args),
+                     str(self.path_supervoxels / patient.images(
+                         self.reference_t).filename))
+
+            # Update patient path masks
+            patient.path_masks['supervoxels'] = self.path_supervoxels
+        except:
+            print("Error in id: ", patient.id)
+        new_patient = Patient(path=patient.path, path_masks=patient.path_masks,
+                              id=patient.id,
+                              diagnosis=patient.diagnosis,
+                              subclass_diagnosis=patient.subclass_diagnosis,
+                              nodular=patient.nodular)
+        return new_patient
+
+    def result(self):
+        return self.seeds
