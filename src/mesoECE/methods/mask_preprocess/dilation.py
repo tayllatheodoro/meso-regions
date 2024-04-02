@@ -21,7 +21,8 @@ def otsu_threshold_mask(img, mask):
 
 class Dilation(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, dilation_radius: int,
-                 p_center_distance: float = 0.5, otsu: bool = False, mask_to_dilate: str = 'fluid'):
+                 p_center_distance: float = 0.5, otsu: bool = False,
+                 mask_to_dilate: str = 'fluid'):
         super().__init__()
         self.path_pleural_region = path
         self.ref_t = ref_t
