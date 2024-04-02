@@ -40,18 +40,24 @@ class N4BiasCorrection(AbstractMethod):
                 # parameters of header and affine from the original image
                 # needed to keep voxel size and orientation
                 nifti_args = patient.get_image(t).nifti_props
-                image = ants.from_nibabel(
+                image_ants = ants.from_nibabel(
                     nib.Nifti1Image(patient.get_image(t).data, **nifti_args))
 
                 # Performing N4 Bias Correction
-                image_corrected = ants.n4_bias_field_correction(image)
+                image_corrected = ants.n4_bias_field_correction(image_ants)
 
                 # Saving N4 Bias Correction image
                 nib.save(ants.to_nibabel(image_corrected),
                          str(self.path_bias_correction / img_file))
 
-        new_patient = Patient(self.path_bias_correction, patient.path_masks,
-                              patient.id, patient.diagnosis,
+        new_patient = Patient(path=self.path_bias_correction,
+                              path_masks=patient.path_masks,
+                              id=patient.id,
+                              diagnosis=patient.diagnosis,
                               subclass_diagnosis=patient.subclass_diagnosis,
                               nodular=patient.nodular)
         return new_patient
+
+
+if __name__ == "__main__":
+    import ants

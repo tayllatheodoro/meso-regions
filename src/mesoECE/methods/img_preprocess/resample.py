@@ -49,28 +49,32 @@ class Resample(AbstractMethod):
 
                 # Reading image as ANTsImage from numpy
                 nifti_args = patient.get_image(self.reference_t).nifti_props
-                image = ants.from_nibabel(
+                image_ants = ants.from_nibabel(
                     nib.Nifti1Image(patient.get_image(t).data, **nifti_args))
                 print("\n")
-                print("Image spacing:", ants.get_spacing(image))
+                print("Image spacing:", ants.get_spacing(image_ants))
 
                 if self.img_spacing == 0:
                     # Resample the image to the image dim size
-                    img_resampled = ants.resample_image(image,
-                                                        (self.img_dim[0],
-                                                         self.img_dim[1],
-                                                         self.img_dim[2]),
-                                                        True, 1)
+                    image_rsmp = ants.resample_image(image_ants,
+                                                     (self.img_dim[0],
+                                                      self.img_dim[1],
+                                                      self.img_dim[2]),
+                                                     True,
+                                                     1)
                     print("Resampled image spacing:",
-                          ants.get_spacing(img_resampled))
+                          ants.get_spacing(image_rsmp))
 
                 else:
                     # Resample the image to the target voxel size
-                    img_resampled = ants.resample_image(image, (
-                        self.img_spacing, self.img_spacing, self.img_spacing),
-                                                        False, 1)
+                    image_rsmp = ants.resample_image(image_ants,
+                                                     (self.img_spacing,
+                                                      self.img_spacing,
+                                                      self.img_spacing),
+                                                     False,
+                                                     1)
                     print("Resampled image spacing:",
-                          ants.get_spacing(img_resampled))
+                          ants.get_spacing(image_rsmp))
 
                 # Checking if masks are available for the patient in t
                 try:
@@ -80,7 +84,7 @@ class Resample(AbstractMethod):
                         try:
                             # Checking if masks type are available
                             print(
-                                f'Applying resampling to obtain MRI Mask {mask_type}...')
+                                f'Obtaining Resampled MRI Mask {mask_type}...')
                             nifti_args_mask = patient.get_image(t).masks[
                                 mask_type].nifti_props
                             os.makedirs(self.path_resample_mask / mask_type,
@@ -94,28 +98,36 @@ class Resample(AbstractMethod):
                             print("Mask spacing:", ants.get_spacing(mask))
 
                             # Resample the mask to the image resampled size
-                            mask_resampled = ants.resample_image_to_target(mask,
-                                                                           img_resampled,
-                                                                           interp_type='genericLabel')
+                            mask_rsmp = ants.resample_image_to_target(mask,
+                                                                      image_rsmp,
+                                                                      interp_type='genericLabel')
                             print("Resampled mask spacing:",
-                                  ants.get_spacing(mask_resampled))
+                                  ants.get_spacing(mask_rsmp))
                             # Saving resampled mask
                             nib.save(ants.utils.convert_nibabel.to_nibabel(
-                                mask_resampled),
-                                str(self.path_resample_mask / mask_type / img_file))
+                                mask_rsmp),
+                                str(self.path_resample_mask / mask_type
+                                    / img_file))
                         except:
                             print(
-                                f'No mask {mask_type} found for patient {patient.id} at timepoint {t}')
+                                f'No mask {mask_type} found for patient'
+                                f' {patient.id} at timepoint {t}')
                 except:
                     print(
                         f'No masks found for patient {patient.id} at timepoint {t}')
 
                 # Saving resampled image
-                nib.save(ants.to_nibabel(img_resampled),
+                nib.save(ants.to_nibabel(image_rsmp),
                          str(self.path_resample / img_file))
 
-        new_patient = Patient(self.path_resample, patient.path_masks,
-                              patient.id, patient.diagnosis,
+        new_patient = Patient(path=self.path_resample,
+                              path_masks=patient.path_masks,
+                              id=patient.id,
+                              diagnosis=patient.diagnosis,
                               subclass_diagnosis=patient.subclass_diagnosis,
                               nodular=patient.nodular)
         return new_patient
+
+
+if __name__ == "__main__":
+    import ants
