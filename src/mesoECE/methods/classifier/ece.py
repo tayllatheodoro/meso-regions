@@ -2,6 +2,7 @@ import numpy as np
 import os
 import pandas as pd
 import nibabel as nib
+import scipy
 import skimage.measure
 from matplotlib import pyplot as plt
 from scipy.interpolate import interp1d
@@ -12,156 +13,100 @@ from src.mesoECE.data_structure.patient import Patient, MRImage
 from src.mesoECE.methods import AbstractMethod
 
 
+def correct_image_background(patient: Patient, t):
+    image = patient.get_image(t).data
+    image_corrected = image - patient.background_otsu(t)
+    return image_corrected
+
+
 class ECE(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, domain: str = None,
                  interpolate: bool = False):
         super().__init__()
-        self.superspels_interp = None
-        self.selected_superpels = None
+
         self.thread_safe = False
-        self.superspels = None
         self.predicted_diagnosis = []
         self.path_ece = path
         self.ref_t = ref_t
         self.domain = domain
 
     def apply(self, patient: Patient, **kwargs):
+        path_images = self.path_ece / 'images'
+        path_plot = self.path_ece / 'plots'
+        path_ss_df = self.path_ece / 'superspels_df'
+
+        os.makedirs(path_ss_df, exist_ok=True)
+        os.makedirs(path_plot, exist_ok=True)
+        os.makedirs(path_images, exist_ok=True)
 
         try:
             print("\r", end='')
             print("ECE processing......", end="", flush=True)
-            supervoxel_mask = []
-            nifti_args = []
 
-            if self.domain == 'ORIG':
-                self.superspels = np.zeros(
-                    (int(patient.get_image(self.ref_t).masks[
-                             "supervoxels"].data.max()),
-                     patient.time_points.__len__()))
+            ss_mask, nifti_args = self.define_superspels_mask(patient)
 
-                for t in patient.time_points:
-                    nifti_args.append(
-                        patient.get_image(t).masks["supervoxels"].nifti_props)
-                    supervoxel_mask.append(
-                        patient.get_image(t).masks["supervoxels"].data.astype(
-                            np.int32))
-                    rps = skimage.measure.regionprops(supervoxel_mask[-1])
+            ss_mean_curves = self.define_superspels_curves(
+                patient, ss_mask, nifti_args)
 
-                    for rp in rps:
-                        slice_bbox = tuple(
-                            [slice(dim_start, dim_finish) for
-                             dim_start, dim_finish in
-                             zip(rp.bbox[:3], rp.bbox[3:])])
-                        lbl_in_bbox = rp.image
-                        img_in_bbox = patient.get_image(t).data[slice_bbox]
-
-                        self.superspels[
-                            rp.label - 1, patient.time_points.index(t)] = \
-                            img_in_bbox[lbl_in_bbox > 0].mean()
-
-            elif self.domain == 'REG':
-                nifti_args.append(patient.get_image(self.ref_t).get_mask(
-                    "supervoxels").nifti_props)
-                supervoxel_mask.append(
-                    patient.get_image(self.ref_t).get_mask(
-                        "supervoxels").data.astype(np.int32))
-                rps = skimage.measure.regionprops(supervoxel_mask[-1])
-                self.superspels = np.zeros((len(rps), len(patient.time_points)))
-
-                for rp in rps:
-                    slice_bbox = tuple(
-                        [slice(dim_start, dim_finish) for dim_start, dim_finish
-                         in zip(rp.bbox[:3], rp.bbox[3:])])
-                    lbl_in_bbox = rp.image
-
-                    for t in patient.time_points:
-                        img_in_bbox = patient.get_image(t).data[
-                                          slice_bbox] - patient.background_otsu(
-                            t)
-                        self.superspels[
-                            rp.label - 1, patient.time_points.index(t)] = \
-                            img_in_bbox[
-                                lbl_in_bbox > 0].mean()
-
-            selected_labels = self._label_selection(
-                patient.time_points.index(270))
+            ece_labels = self.ece_label_selection(
+                index_270=patient.time_points.index(270),
+                ss_mean=ss_mean_curves)
             ece_mask = []
 
-            for i in range(len(supervoxel_mask)):
-                mask = np.isin(supervoxel_mask[i], selected_labels)
-                supervoxel_mask[i][~mask] = 0
-                ece_mask.append(supervoxel_mask[i])
+            for i in range(len(ss_mask)):
+                mask = np.isin(ss_mask[i], ece_labels)
+                ss_mask[i][~mask] = 0
+                ece_mask.append(ss_mask[i])
 
             region_mask = patient.get_image(self.ref_t).masks[
                 "pleural_region"].data.astype(np.int32)
-
             volume_mask = np.sum(region_mask)
-            ece_sum = np.sum(ece_mask)
-            if selected_labels and ece_sum > volume_mask * 0.0001:
+            ece_mask_temp = np.where(ece_mask, 1, 0)
+            ece_sum = np.sum(ece_mask_temp)
+
+            if ece_labels and ece_sum > volume_mask * 0.0001:
                 self.predicted_diagnosis.append(
                     [patient.id, patient.diagnosis, 1,
                      patient.subclass_diagnosis, patient.nodular,
-                     selected_labels.__len__(), ece_sum])
+                     ece_labels.__len__(), ece_sum])
 
-                self.selected_superpels = np.zeros(
-                    (len(selected_labels), len(patient.time_points)))
+                ss_ece_curves = np.zeros(
+                    (len(ece_labels), len(patient.time_points)))
 
-                for label in selected_labels:
-                    self.selected_superpels[selected_labels.index(label)] = \
-                        self.superspels[label]
+                for l in ece_labels:
+                    ss_ece_curves[ece_labels.index(l)] = ss_mean_curves[l]
 
-                self.superspels_interp, time_points_interp = self.interpolate_missing_time_points(
-                    time_points=patient.time_points)
-
-                path_images = self.path_ece / 'images'
-                path_plot_curves = self.path_ece / 'plots'
-                path_selected_labels_df = self.path_ece / 'selected_labels_df'
-                path_interp_df = self.path_ece / 'interp_df'
-
-                os.makedirs(path_selected_labels_df, exist_ok=True)
-                os.makedirs(path_plot_curves, exist_ok=True)
-                os.makedirs(path_images, exist_ok=True)
-                os.makedirs(path_interp_df, exist_ok=True)
-
-                for i in range(len(ece_mask)):
-                    if self.domain == 'REG':
-                        nib.save(nib.Nifti1Image(ece_mask[i], **nifti_args[i]),
-                                 str(path_images / patient.get_image(
-                                     self.ref_t).filename))
-                    elif self.domain == 'ORIG':
+                if self.domain == 'REG':
+                    nib.save(nib.Nifti1Image(ece_mask[-1], **nifti_args[-1]),
+                             str(path_images / patient.get_image(
+                                 self.ref_t).filename))
+                elif self.domain == 'ORIG':
+                    for i in range(len(ece_mask)):
                         nib.save(nib.Nifti1Image(ece_mask[i], **nifti_args[i]),
                                  str(path_images / patient.get_image(
                                      patient.time_points[i]).filename))
 
-                self.plot_ece_curves(selected_labels=selected_labels,
+                self.plot_ece_curves(ece_labels=ece_labels,
                                      time_points=patient.time_points,
-                                     filename=str(
-                                         path_plot_curves / MRImage.resolve_name(
-                                             patient.id, self.ref_t,
-                                             "png")))
+                                     ss_mean_curves=ss_mean_curves,
+                                     filename=str(path_plot /
+                                                  MRImage.resolve_name(
+                                                      patient.id, self.ref_t,
+                                                      "png")))
 
-                self.export_selected_labels_to_dataframe(
-                    superspels=self.selected_superpels,
-                    time_points=patient.time_points,
-                    filename=str(
-                        path_selected_labels_df / MRImage.resolve_name(
-                            patient.id,
-                            self.ref_t,
-                            "csv")))
+                ss_ece_interp, time_points_interp = self.interp_missing_points(
+                    ss_ece_curves=ss_ece_curves,
+                    ss_mean_curves=ss_mean_curves,
+                    time_points=patient.time_points)
 
-                self.export_selected_labels_to_dataframe(
-                    superspels=self.superspels_interp,
-                    time_points=time_points_interp,
-                    filename=str(
-                        path_interp_df / MRImage.resolve_name(patient.id,
-                                                              self.ref_t,
-                                                              "csv")))
+                self.export_all_dfs(patient, ss_mean_curves, time_points_interp,
+                                    path_ss_df)
 
             else:
                 self.predicted_diagnosis.append(
                     [patient.id, patient.diagnosis, 0,
                      patient.subclass_diagnosis, patient.nodular,
-                     selected_labels.__len__(), ece_sum])
+                     ece_labels.__len__(), ece_sum])
 
             patient.path_masks['ece'] = self.path_ece
         except:
@@ -177,40 +122,107 @@ class ECE(AbstractMethod):
     def results(self):
         return self.predicted_diagnosis
 
-    def _label_selection(self, index_270):
-        valid_indices = []
-        for i in range(self.superspels.shape[0]):
-            peak_index = np.argmax(self.superspels[i])
+    def define_superspels_mask(self, patient: Patient):
+        ss_mask = []
+        nifti_args = []
+
+        if self.domain == 'REG':
+            nifti_args.append(patient.get_image(self.ref_t).nifti_props)
+            ss_mask.append(patient.get_image(self.ref_t).masks[
+                               "supervoxels"].data.astype(np.int32))
+
+        elif self.domain == 'ORIG':
+            for t in patient.time_points:
+                nifti_args.append(
+                    patient.get_image(t).masks["supervoxels"].nifti_props)
+                ss_mask.append(
+                    patient.get_image(t).masks["supervoxels"].data.astype(
+                        np.int32))
+
+        return ss_mask, nifti_args
+
+    def define_superspels_curves(self, patient: Patient, ss_mask, nifti_args):
+
+        ss_mean_curve = np.zeros(
+            (int(patient.get_image(self.ref_t).masks[
+                     "supervoxels"].data.max()) + 1,
+             patient.time_points.__len__()))
+
+        if self.domain == 'REG':
+            rps = skimage.measure.regionprops(ss_mask[-1])
+            for rp in rps:
+                slice_bbox = tuple(
+                    [slice(dim_start, dim_finish) for dim_start, dim_finish in
+                     zip(rp.bbox[:3], rp.bbox[3:])])
+                lbl_in_bbox = rp.image
+
+                for t in patient.time_points:
+                    img = correct_image_background(patient, t)
+                    img_in_bbox = img[slice_bbox]
+                    ss_mean_curve[rp.label - 1, patient.time_points.index(t)] = \
+                        img_in_bbox[lbl_in_bbox > 0].mean()
+
+        if self.domain == 'ORIG':
+
+            for t in patient.time_points:
+                nifti_args.append(
+                    patient.get_image(t).masks["supervoxels"].nifti_props)
+                ss_mask.append(
+                    patient.get_image(t).masks["supervoxels"].data.astype(
+                        np.int32))
+                rps = skimage.measure.regionprops(ss_mask[-1])
+                img = correct_image_background(patient, t)
+
+                for rp in rps:
+                    slice_bbox = tuple(
+                        [slice(dim_start, dim_finish) for dim_start, dim_finish
+                         in zip(rp.bbox[:3], rp.bbox[3:])])
+                    lbl_in_bbox = rp.image
+                    img_in_bbox = img[slice_bbox]
+
+                    ss_mean_curve[rp.label, patient.time_points.index(t)] = \
+                        img_in_bbox[lbl_in_bbox > 0].mean()
+
+        return ss_mean_curve
+
+    @staticmethod
+    def ece_label_selection(index_270, ss_mean):
+        ece_labels = []
+        for i in range(ss_mean.shape[0]):
+            peak_index = np.argmax(ss_mean[i])
 
             if 0 < peak_index <= index_270:
                 is_increasing = np.all(
-                    self.superspels[i, :peak_index - 1] < self.superspels[i,
-                                                          1:peak_index])
+                    ss_mean[i, :peak_index - 1] < ss_mean[i, 1:peak_index])
                 is_decreasing = np.all(
-                    self.superspels[i, peak_index:-1] > self.superspels[i,
-                                                        peak_index + 1:])
-                if is_increasing and is_decreasing:
-                    valid_indices.append(i)
-        return valid_indices
+                    ss_mean[i, peak_index:-1] > ss_mean[i, peak_index + 1:])
+                pre_contrast = np.all(ss_mean[i, 0] < ss_mean[i, 1:])
+                if is_increasing and is_decreasing and pre_contrast:
+                    ece_labels.append(i)
+        return ece_labels
 
-    def interpolate_missing_time_points(self, time_points):
-        n_curves = self.selected_superpels.shape[0]
-        superspels_interp = np.zeros((n_curves, 7))
+    @staticmethod
+    def interp_missing_points(ss_ece_curves,
+                              ss_mean_curves, time_points):
+        n_curves = ss_ece_curves.shape[0]
+        ss_interp_curves = np.zeros((n_curves, 7))
 
         standard_time_points = [0, 40, 80, 180, 270, 540, 810]
         for i in range(n_curves):
-            f_interp = interp1d(time_points, self.selected_superpels[i],
-                                fill_value=self.superspels[i, -1],
+            f_interp = interp1d(time_points, ss_ece_curves[i],
+                                fill_value=ss_mean_curves[i, -1],
                                 bounds_error=False)
-            superspels_interp[i] = np.asarray(
+            ss_interp_curves[i] = np.asarray(
                 [f_interp(t) for t in standard_time_points[:1]])
-        return superspels_interp, standard_time_points
+        return ss_interp_curves, standard_time_points
 
-    def plot_ece_curves(self, selected_labels, time_points, filename=None,
+    @staticmethod
+    def plot_ece_curves(ss_mean_curves, ece_labels, time_points,
+                        filename=None,
                         title='ECE Curves'):
         plt.figure(figsize=(10, 6))
-        for label in selected_labels:
-            plt.plot(time_points, self.superspels[label],
+        for label in ece_labels:
+            plt.plot(time_points, ss_mean_curves[label],
                      label=f'Label {label}')
 
         plt.xlabel('Time Points')
@@ -218,20 +230,48 @@ class ECE(AbstractMethod):
         # Add a red vertical line at x=3
         plt.axvline(x=270, color='red')
         plt.title(title)
-        # plt.legend()
         plt.grid(True)
 
         if filename:
             plt.savefig(filename)  # Save the plot as a PNG file
+
+        else:
+            plt.show()
         plt.close('all')
 
     @staticmethod
-    def export_selected_labels_to_dataframe(superspels, time_points,
-                                            filename='selected_superspels.csv'):
-        """
-        Export data and corresponding time points as a Pandas DataFrame and save it to a CSV file.
-        """
+    def export_curves_to_csv(curves, time_points, filename=None):
 
         column_names_str = list(map(str, time_points))
-        df = pd.DataFrame(superspels, columns=column_names_str)
+        df = pd.DataFrame(curves, columns=column_names_str)
         df.to_csv(filename, index=False)
+
+    def export_all_dfs(self, patient: Patient, ss_mean_curves, ss_ece_curves,
+                       ss_ece_curves_interp, time_points_interp,
+                       path_superspels_df: Path):
+        self.export_curves_to_csv(
+            curves=ss_ece_curves,
+            time_points=patient.time_points,
+            filename=str(
+                path_superspels_df /
+                f'ece_{MRImage.resolve_name(patient.id,
+                                            self.ref_t,
+                                            "csv")}'))
+
+        self.export_curves_to_csv(
+            curves=ss_ece_curves_interp,
+            time_points=time_points_interp,
+            filename=str(
+                path_superspels_df /
+                f'intep_ece_{MRImage.resolve_name(patient.id,
+                                                  self.ref_t,
+                                                  "csv")}'))
+
+        self.export_curves_to_csv(
+            curves=ss_mean_curves,
+            time_points=patient.time_points,
+            filename=str(
+                path_superspels_df /
+                f'all_{MRImage.resolve_name(patient.id,
+                                            self.ref_t,
+                                            "csv")}'))
