@@ -48,33 +48,31 @@ class ECE(AbstractMethod):
             ss_mean_curves = self.define_superspels_curves(
                 patient, ss_mask, nifti_args)
 
+            index_270 = patient.time_points.index(270)
+
             ece_labels = self.ece_label_selection(
-                index_270=patient.time_points.index(270),
+                index_270=index_270,
                 ss_mean=ss_mean_curves)
-            ece_mask = []
 
-            for i in range(len(ss_mask)):
-                mask = np.isin(ss_mask[i], ece_labels)
-                ss_mask[i][~mask] = 0
-                ece_mask.append(ss_mask[i])
-
-            region_mask = patient.get_image(self.ref_t).masks[
+            ece_mask = self.define_ece_mask(ece_labels, ss_mask)
+            pleural_mask = patient.get_image(self.ref_t).masks[
                 "pleural_region"].data.astype(np.int32)
-            volume_mask = np.sum(region_mask)
-            ece_mask_temp = np.where(ece_mask, 1, 0)
-            ece_sum = np.sum(ece_mask_temp)
 
-            if ece_labels and ece_sum > volume_mask * 0.0001:
+            pleural_vol, ece_vol = self.define_masks_volume(
+                pleural_mask=pleural_mask,
+                ece_mask=ece_mask,
+                index_270=index_270)
+
+            if ece_labels and ece_vol > pleural_vol * 0.0001:
                 self.predicted_diagnosis.append(
                     [patient.id, patient.diagnosis, 1,
                      patient.subclass_diagnosis, patient.nodular,
-                     ece_labels.__len__(), ece_sum])
+                     ece_labels.__len__(), ece_vol])
 
-                ss_ece_curves = np.zeros(
-                    (len(ece_labels), len(patient.time_points)))
-
-                for l in ece_labels:
-                    ss_ece_curves[ece_labels.index(l)] = ss_mean_curves[l]
+                ss_ece_curves = self.define_ece_curves(
+                    len_time_points=len(patient.time_points),
+                    ss_mean_curves=ss_mean_curves,
+                    ece_labels=ece_labels)
 
                 if self.domain == 'REG':
                     nib.save(nib.Nifti1Image(ece_mask[-1], **nifti_args[-1]),
@@ -106,7 +104,7 @@ class ECE(AbstractMethod):
                 self.predicted_diagnosis.append(
                     [patient.id, patient.diagnosis, 0,
                      patient.subclass_diagnosis, patient.nodular,
-                     ece_labels.__len__(), ece_sum])
+                     ece_labels.__len__(), ece_vol])
 
             patient.path_masks['ece'] = self.path_ece
         except:
@@ -121,6 +119,36 @@ class ECE(AbstractMethod):
 
     def results(self):
         return self.predicted_diagnosis
+
+    def define_masks_volume(self, pleural_mask, ece_mask, index_270):
+        pleural_volume = np.sum(pleural_mask)
+        ece_mask_temp = np.zeros_like(pleural_mask)
+        if self.domain == 'REG':
+            ece_mask_temp = np.where(ece_mask[-1], 1, 0)
+        elif self.domain == 'ORIG':
+            ece_mask_temp = np.where(ece_mask[index_270], 1, 0)
+        ece_volume = np.sum(ece_mask_temp)
+        return pleural_volume, ece_volume
+
+    @staticmethod
+    def define_ece_curves(len_time_points, ss_mean_curves, ece_labels):
+        ss_ece_curves = np.zeros(
+            (len(ece_labels), len_time_points))
+
+        for l in ece_labels:
+            ss_ece_curves[ece_labels.index(l)] = ss_mean_curves[l]
+
+        return ss_ece_curves
+
+    @staticmethod
+    def define_ece_mask(ece_labels, ss_mask):
+        ece_mask = []
+
+        for i in range(len(ss_mask)):
+            mask = np.isin(ss_mask[i], ece_labels)
+            ss_mask[i][~mask] = 0
+            ece_mask.append(ss_mask[i])
+        return ece_mask
 
     def define_superspels_mask(self, patient: Patient):
         ss_mask = []
