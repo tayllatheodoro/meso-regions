@@ -19,6 +19,12 @@ def correct_image_background(patient: Patient, t):
     return image_corrected
 
 
+def export_curves_to_csv(curves, time_points, filename=None):
+    column_names_str = list(map(str, time_points))
+    df = pd.DataFrame(curves, columns=column_names_str)
+    df.to_csv(filename, index=False)
+
+
 class ECE(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, domain: str = None,
                  interpolate: bool = False):
@@ -267,17 +273,10 @@ class ECE(AbstractMethod):
             plt.show()
         plt.close('all')
 
-    @staticmethod
-    def export_curves_to_csv(curves, time_points, filename=None):
-
-        column_names_str = list(map(str, time_points))
-        df = pd.DataFrame(curves, columns=column_names_str)
-        df.to_csv(filename, index=False)
-
     def export_all_dfs(self, patient: Patient, ss_mean_curves, ss_ece_curves,
                        ss_ece_curves_interp, time_points_interp,
                        path_superspels_df: Path):
-        self.export_curves_to_csv(
+        export_curves_to_csv(
             curves=ss_ece_curves,
             time_points=patient.time_points,
             filename=str(
@@ -286,7 +285,7 @@ class ECE(AbstractMethod):
                                             self.ref_t,
                                             "csv")}'))
 
-        self.export_curves_to_csv(
+        export_curves_to_csv(
             curves=ss_ece_curves_interp,
             time_points=time_points_interp,
             filename=str(
@@ -295,7 +294,7 @@ class ECE(AbstractMethod):
                                                   self.ref_t,
                                                   "csv")}'))
 
-        self.export_curves_to_csv(
+        export_curves_to_csv(
             curves=ss_mean_curves,
             time_points=patient.time_points,
             filename=str(
