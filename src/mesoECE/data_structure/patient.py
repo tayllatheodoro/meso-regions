@@ -25,7 +25,8 @@ class Patient:
         self.diagnosis = diagnosis
         self.subclass_diagnosis = subclass_diagnosis
         self.nodular = nodular
-        self.supervoxels_masks = []
+        self.supervoxels_m_masks = []
+        self.supervoxels_b_masks = []
         self.load()
 
     def load(self) -> None:
