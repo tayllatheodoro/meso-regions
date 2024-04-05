@@ -12,6 +12,7 @@ from src.mesoECE.data_structure.patient import Patient, Diagnosis
 from src.mesoECE.methods import AbstractMethod
 from src.mesoECE.methods.classifier.ece import correct_image_background, \
     export_curves_to_csv
+from src.mesoECE.methods.utils import define_masks_volume
 
 
 class FullECE(AbstractMethod):
@@ -45,9 +46,8 @@ class FullECE(AbstractMethod):
 
             ece_labeled = skimage.measure.label(ece_mask)
 
-            pleural_vol, ece_vol = self.define_masks_volume(
-                pleural_mask=pleural_mask,
-                ece_mask=ece_mask)
+            pleural_vol = define_masks_volume(mask=pleural_mask)
+            ece_vol = define_masks_volume(mask=ece_mask)
 
             if ece_vol > pleural_vol * 0.0001:
                 self.predicted_diagnosis.append(
@@ -94,12 +94,6 @@ class FullECE(AbstractMethod):
 
     def results(self):
         return self.predicted_diagnosis
-
-    @staticmethod
-    def define_masks_volume(pleural_mask, ece_mask):
-        pleural_volume = np.sum(pleural_mask)
-        ece_volume = np.sum(ece_mask)
-        return pleural_volume, ece_volume
 
     def define_images_filtered(self, patient, pleural_mask):
         images = []

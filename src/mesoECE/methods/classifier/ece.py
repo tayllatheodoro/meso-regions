@@ -11,18 +11,26 @@ from pathlib import Path
 
 from src.mesoECE.data_structure.patient import Patient, MRImage
 from src.mesoECE.methods import AbstractMethod
+from src.mesoECE.methods.utils import (correct_image_background,
+                                       export_curves_to_csv)
+
+from src.mesoECE.methods.utils import define_masks_volume
 
 
-def correct_image_background(patient: Patient, t):
-    image = patient.get_image(t).data
-    image_corrected = image - patient.background_otsu(t)
-    return image_corrected
+def ece_label_selection(index_270, ss_mean):
+    ece_labels = []
+    for i in range(ss_mean.shape[0]):
+        peak_index = np.argmax(ss_mean[i])
 
-
-def export_curves_to_csv(curves, time_points, filename=None):
-    column_names_str = list(map(str, time_points))
-    df = pd.DataFrame(curves, columns=column_names_str)
-    df.to_csv(filename, index=False)
+        if 0 < peak_index <= index_270:
+            is_increasing = np.all(
+                ss_mean[i, :peak_index - 1] < ss_mean[i, 1:peak_index])
+            is_decreasing = np.all(
+                ss_mean[i, peak_index:-1] > ss_mean[i, peak_index + 1:])
+            pre_contrast = np.all(ss_mean[i, 0] < ss_mean[i, 1:])
+            if is_increasing and is_decreasing and pre_contrast:
+                ece_labels.append(i)
+    return ece_labels
 
 
 class ECE(AbstractMethod):
@@ -64,10 +72,13 @@ class ECE(AbstractMethod):
             pleural_mask = patient.get_image(self.ref_t).masks[
                 "pleural_region"].data.astype(np.int32)
 
-            pleural_vol, ece_vol = self.define_masks_volume(
-                pleural_mask=pleural_mask,
-                ece_mask=ece_mask,
-                index_270=index_270)
+            if self.domain == 'REG':
+
+                pleural_vol = define_masks_volume(mask=pleural_mask)
+                ece_vol = define_masks_volume(mask=ece_mask[-1])
+            elif self.domain == 'ORIG':
+                pleural_vol = define_masks_volume(mask=pleural_mask)
+                ece_vol = define_masks_volume(mask=ece_mask[index_270])
 
             if ece_labels and ece_vol > pleural_vol * 0.0001:
                 self.predicted_diagnosis.append(
@@ -126,16 +137,6 @@ class ECE(AbstractMethod):
     def results(self):
         return self.predicted_diagnosis
 
-    def define_masks_volume(self, pleural_mask, ece_mask, index_270):
-        pleural_volume = np.sum(pleural_mask)
-        ece_mask_temp = np.zeros_like(pleural_mask)
-        if self.domain == 'REG':
-            ece_mask_temp = np.where(ece_mask[-1], 1, 0)
-        elif self.domain == 'ORIG':
-            ece_mask_temp = np.where(ece_mask[index_270], 1, 0)
-        ece_volume = np.sum(ece_mask_temp)
-        return pleural_volume, ece_volume
-
     @staticmethod
     def define_ece_curves(len_time_points, ss_mean_curves, ece_labels):
         ss_ece_curves = np.zeros(
@@ -183,6 +184,9 @@ class ECE(AbstractMethod):
              patient.time_points.__len__()))
 
         if self.domain == 'REG':
+            images = []
+            for t in patient.time_points:
+                images = correct_image_background(patient, t)
             rps = skimage.measure.regionprops(ss_mask[-1])
             for rp in rps:
                 slice_bbox = tuple(
@@ -191,7 +195,7 @@ class ECE(AbstractMethod):
                 lbl_in_bbox = rp.image
 
                 for t in patient.time_points:
-                    img = correct_image_background(patient, t)
+                    img = images[patient.time_points.index(t)]
                     img_in_bbox = img[slice_bbox]
                     ss_mean_curve[rp.label - 1, patient.time_points.index(t)] = \
                         img_in_bbox[lbl_in_bbox > 0].mean()
@@ -218,22 +222,6 @@ class ECE(AbstractMethod):
                         img_in_bbox[lbl_in_bbox > 0].mean()
 
         return ss_mean_curve
-
-    @staticmethod
-    def ece_label_selection(index_270, ss_mean):
-        ece_labels = []
-        for i in range(ss_mean.shape[0]):
-            peak_index = np.argmax(ss_mean[i])
-
-            if 0 < peak_index <= index_270:
-                is_increasing = np.all(
-                    ss_mean[i, :peak_index - 1] < ss_mean[i, 1:peak_index])
-                is_decreasing = np.all(
-                    ss_mean[i, peak_index:-1] > ss_mean[i, peak_index + 1:])
-                pre_contrast = np.all(ss_mean[i, 0] < ss_mean[i, 1:])
-                if is_increasing and is_decreasing and pre_contrast:
-                    ece_labels.append(i)
-        return ece_labels
 
     @staticmethod
     def interp_missing_points(ss_ece_curves,
