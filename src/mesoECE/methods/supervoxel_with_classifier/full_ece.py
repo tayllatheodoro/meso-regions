@@ -117,7 +117,8 @@ class FullECE(AbstractMethod):
                 ece_mask = np.logical_and(ece_mask, images[i] < images[i - 1])
         return ece_mask
 
-    def define_ece_curves(self, patient: Patient, ece_mask):
+    @staticmethod
+    def define_ece_curves(patient: Patient, ece_mask):
 
         ece_mean_curve = np.zeros(ece_mask.max() + 1,
                                   patient.time_points.__len__())
@@ -136,26 +137,4 @@ class FullECE(AbstractMethod):
                     img_in_bbox[lbl_in_bbox > 0]
         return ece_mean_curve
 
-    @staticmethod
-    def plot_ece_curves(curves, ece_mask, time_points,
-                        filename=None,
-                        title='ECE Curves'):
-        plt.figure(figsize=(10, 6))
-        ece_labels = np.unique(ece_mask)
-        for label in ece_labels:
-            plt.plot(time_points, curves[label],
-                     label=f'Label {label}')
 
-        plt.xlabel('Time Points')
-        plt.ylabel('Mean Intensity')
-        # Add a red vertical line at x=3
-        plt.axvline(x=270, color='red')
-        plt.title(title)
-        plt.grid(True)
-
-        if filename:
-            plt.savefig(filename)  # Save the plot as a PNG file
-
-        else:
-            plt.show()
-        plt.close('all')

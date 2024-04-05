@@ -34,8 +34,16 @@ class DivideWithECE(AbstractMethod):
         self.p_size = p_size
         self.predict_only_small = predict_only_small
 
+    #TODO: Implement with sicle, disf
+    #TODO: Implement plot and save supervoxels
+
     def apply(self, patient: Patient, **kwargs):
         try:
+            path_m_images = self.path_sv / 'ece_images'
+            path_b_images = self.path_sv / 'benign_images'
+            path_plot = self.path_sv / 'plots'
+            path_ss_df = self.path_sv / 'superspels_df'
+
             nifti_args = patient.get_image(self.ref_t).masks[
                 "pleural_region"].nifti_props
             pleural_mask = patient.get_image(self.ref_t).masks[
@@ -76,8 +84,13 @@ class DivideWithECE(AbstractMethod):
 
                 nib.save(nib.Nifti1Image(sv_m_mask.astype(np.int32),
                                          **nifti_args),
-                         str(self.path_sv / patient.get_image(
+                         str(path_m_images / patient.get_image(
                              self.ref_t).filename))
+            # save benign supervoxels
+            nib.save(nib.Nifti1Image(sv_b_mask.astype(np.int32),
+                                     **nifti_args),
+                     str(path_b_images / patient.get_image(
+                         self.ref_t).filename))
 
             patient.path_masks['supervoxels'] = self.path_sv
 

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 import matplotlib.pyplot as plt
+from scipy.stats import stats
 from sklearn import metrics
 
 import numpy as np
@@ -44,6 +45,7 @@ class Experiment:
         self.instantiate_experiment()
 
         masks_list = os.listdir(path_masks)
+        masks_dir = None
         if len(masks_list) > 1:
             for mask in masks_list:
                 masks_dir = {mask: path_masks / mask}
@@ -135,7 +137,9 @@ class Experiment:
         self.result_classifier()
         self.results_seeds()
         self.classifier_metrics()
+
     def result_analysis(self):
+
         pass
 
     def result_classifier(self):
