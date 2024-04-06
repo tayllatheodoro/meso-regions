@@ -21,6 +21,7 @@ class Superspel(AbstractMethod):
         try:
             print("\r", end='')
             print("Superspels processing......", end="", flush=True)
+
             # Paths
             path_ss_df = self.path_superspels / 'curves_df'
             path_plot = self.path_superspels / 'plots'

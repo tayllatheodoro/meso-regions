@@ -227,23 +227,3 @@ class DivideWithECE(AbstractMethod):
             supervoxel_b_mask[s != 0] = i + 1
 
         return supervoxel_m_mask, supervoxel_b_mask
-
-
-if __name__ == '__main__':
-    pass
-    patient = Patient(path=Path('/home/user/data'),
-                      path_masks={'pleural_region': Path('/home/user/data')},
-                      id=1,
-                      diagnosis=1,
-                      subclass_diagnosis='epithelioid',
-                      nodular=1)
-    ece = DivideWithECE(path=Path('/home/user/data'),
-                        ref_t=1,
-                        n_segments=1,
-                        compactness=1.0,
-                        p_size=1,
-                        method='method',
-                        domain='domain',
-                        predict_only_small=False)
-    ece.apply(patient)
-    print(ece.results())

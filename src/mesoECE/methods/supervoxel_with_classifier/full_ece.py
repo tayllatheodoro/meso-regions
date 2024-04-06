@@ -40,6 +40,11 @@ class FullECE(AbstractMethod):
             os.makedirs(path_ss_df, exist_ok=True)
             os.makedirs(path_plot, exist_ok=True)
 
+            # Calculate the volume of the pleural mask
+            pleural_mask = patient.get_image(self.ref_t).masks[
+                "pleural_region"].data.astype(np.int32)
+            pleural_vol = define_masks_volume(mask=pleural_mask)
+
             nifti_args = patient.get_image(self.ref_t).nifti_props
 
             # Correct images background
@@ -53,16 +58,11 @@ class FullECE(AbstractMethod):
 
             # Define mask with superspels with ece pattern
             # and benign masks
-            ece_mask, benign_mask = self.define_full_ece_mask(patient, images)
+            ece_mask, benign_mask = self.define_ece_mask(patient, images)
 
             # label the masks
             ece_labeled_mask = skimage.measure.label(ece_mask)
             benign_labeled_mask = skimage.measure.label(benign_mask)
-
-            # Calculate the volume of the pleural mask
-            pleural_mask = patient.get_image(self.ref_t).masks[
-                "pleural_region"].data.astype(np.int32)
-            pleural_vol = define_masks_volume(mask=pleural_mask)
 
             # Calculate the volume of the ECE mask
             ece_vol = define_masks_volume(mask=ece_mask)
@@ -153,7 +153,7 @@ class FullECE(AbstractMethod):
             images.append(img_filtered)
         return images
 
-    def define_full_ece_mask(self, patient, images):
+    def define_ece_mask(self, patient, images):
         ece_mask = np.ones_like(patient.get_image(self.ref_t).data.shape)
         peak_index = patient.time_points.index(270)
         for i, t in enumerate(patient.time_points):
@@ -182,5 +182,4 @@ class FullECE(AbstractMethod):
                 img_in_bbox = img[slice_bbox]
                 ece_mean_curve[rp.label, patient.time_points.index(t)] = \
                     img_in_bbox[lbl_in_bbox > 0]
-        benign_curves = ece_mean_curve
         return ece_mean_curve

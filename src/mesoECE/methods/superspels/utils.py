@@ -123,7 +123,7 @@ def define_superspels_curve_orig(patient: Patient,
                                  images_corrected,
                                  ss_mask,
                                  ref_t):
-    ss_mean_curve = np.zeros(
+    mean_intensity_curves = np.zeros(
         (int(patient.get_image(ref_t).masks[
                  "supervoxels"].data.max()) + 1,
          patient.time_points.__len__()))
@@ -138,9 +138,9 @@ def define_superspels_curve_orig(patient: Patient,
             lbl_in_bbox = rp.image
             img_in_bbox = img[slice_bbox]
 
-            ss_mean_curve[rp.label, patient.time_points.index(t)] = \
+            mean_intensity_curves[rp.label, patient.time_points.index(t)] = \
                 img_in_bbox[lbl_in_bbox > 0].mean()
-    return ss_mean_curve
+    return mean_intensity_curves
 
 
 def define_superspels_mask(patient: Patient, domain, ref_t, sv_mask=None):
