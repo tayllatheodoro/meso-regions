@@ -26,20 +26,4 @@ def correct_images_background(patient: Patient):
     return images_corrected
 
 
-def define_ece_curves(patient: Patient, ece_mask):
-    ece_mean_curve = np.zeros(ece_mask.max() + 1,
-                              patient.time_points.__len__())
 
-    rps = skimage.measure.regionprops(ece_mask)
-    for rp in rps:
-        slice_bbox = tuple(
-            [slice(dim_start, dim_finish) for dim_start, dim_finish in
-             zip(rp.bbox[:3], rp.bbox[3:])])
-        lbl_in_bbox = rp.image
-
-        for t in patient.time_points:
-            img = correct_image_background(patient, t)
-            img_in_bbox = img[slice_bbox]
-            ece_mean_curve[rp.label - 1, patient.time_points.index(t)] = \
-                img_in_bbox[lbl_in_bbox > 0]
-    return ece_mean_curve

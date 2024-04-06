@@ -1,24 +1,17 @@
 import numpy as np
 import os
-import pandas as pd
-import nibabel as nib
-import scipy
-import skimage.measure
-from matplotlib import pyplot as plt
-from scipy.interpolate import interp1d
-
 from pathlib import Path
-
 from src.mesoECE.data_structure.patient import Patient, MRImage
 from src.mesoECE.methods import AbstractMethod
-from src.mesoECE.methods.utils import (correct_image_background,
-                                       define_masks_volume,
+from src.mesoECE.methods.utils import (define_masks_volume,
                                        correct_images_background)
 from src.mesoECE.methods.utils_ece import (ece_label_selection,
                                            plot_ece_curves,
-                                           export_curves_to_csv,
-                                           interp_missing_points,
-                                           define_superspels_curve_reg)
+                                           define_superspels_mask,
+                                           define_superspels_curves,
+                                           save_superspels_masks,
+                                           save_curves_and_interp_to_csv,
+                                           define_ece_curves, define_ece_mask)
 
 
 class ECE(AbstractMethod):
@@ -46,11 +39,22 @@ class ECE(AbstractMethod):
             print("\r", end='')
             print("ECE processing......", end="", flush=True)
 
-            ss_mask, nifti_args = self.define_superspels_mask(patient)
-            images_corrected = correct_images_background(patient)
+            ss_mask, nifti_args = define_superspels_mask(patient=patient,
+                                                         domain=self.domain,
+                                                         ref_t=self.ref_t)
+            images_corrected = correct_images_background(patient=patient)
 
-            ss_mean_curves = self.define_superspels_curves(
-                patient, images_corrected, ss_mask)
+            ss_mean_curves = define_superspels_curves(
+                patient=patient,
+                images_corrected=images_corrected,
+                ss_mask=ss_mask,
+                domain=self.domain,
+                ref_t=self.ref_t)
+            save_curves_and_interp_to_csv(patient=patient,
+                                          curves=ss_mean_curves,
+                                          ref_t=self.ref_t,
+                                          path=path_ss_df,
+                                          curve_name='all')
 
             index_270 = patient.time_points.index(270)
 
@@ -58,20 +62,21 @@ class ECE(AbstractMethod):
                 index_270=index_270,
                 ss_mean=ss_mean_curves)
 
-            ece_mask, benign_mask = self.define_ece_mask(ece_labels, ss_mask)
+            ece_mask, benign_mask = define_ece_mask(ece_labels, ss_mask)
+
+            # Calculate the volume of the pleural mask
             pleural_mask = patient.get_image(self.ref_t).masks[
                 "pleural_region"].data.astype(np.int32)
+            pleural_vol = define_masks_volume(mask=pleural_mask)
 
-            ece_vol = 0
-            pleural_vol = 0
-
+            # Calculate the volume of the ECE mask
+            ece_mask_vol = 0
             if self.domain == 'REG':
+                ece_mask_vol = ece_mask[-1]
 
-                pleural_vol = define_masks_volume(mask=pleural_mask)
-                ece_vol = define_masks_volume(mask=ece_mask[-1])
             elif self.domain == 'ORIG':
-                pleural_vol = define_masks_volume(mask=pleural_mask)
-                ece_vol = define_masks_volume(mask=ece_mask[index_270])
+                ece_mask_vol = ece_mask[index_270]
+            ece_vol = define_masks_volume(mask=ece_mask_vol)
 
             if ece_labels and ece_vol > pleural_vol * 0.0001:
                 self.predicted_diagnosis.append(
@@ -79,46 +84,36 @@ class ECE(AbstractMethod):
                      patient.subclass_diagnosis, patient.nodular,
                      ece_labels.__len__(), ece_vol])
 
-                ss_ece_curves = self.define_ece_curves(
+                ss_ece_curves = define_ece_curves(
                     len_time_points=len(patient.time_points),
                     ss_mean_curves=ss_mean_curves,
                     ece_labels=ece_labels)
 
+                save_superspels_masks(ss_mask=ece_mask,
+                                      nifti_args=nifti_args,
+                                      patient=patient,
+                                      domain=self.domain,
+                                      ref_t=self.ref_t,
+                                      path=path_m_images)
+                ece_mask_plot = None
                 if self.domain == 'REG':
-                    nib.save(nib.Nifti1Image(ece_mask[-1], **nifti_args[-1]),
-                             str(path_m_images / patient.get_image(
-                                 self.ref_t).filename))
-                    plot_ece_curves(curves=ss_mean_curves,
-                                    time_points=patient.time_points,
-                                    ece_mask=ece_mask[-1],
-                                    filename=str(path_plot /
-                                                 MRImage.resolve_name(
-                                                     patient.id, self.ref_t,
-                                                     "png")))
+                    ece_mask_plot = ece_mask[-1]
+
                 elif self.domain == 'ORIG':
-                    for i in range(len(ece_mask)):
-                        nib.save(nib.Nifti1Image(ece_mask[i], **nifti_args[i]),
-                                 str(path_m_images / patient.get_image(
-                                     patient.time_points[i]).filename))
-                    plot_ece_curves(curves=ss_mean_curves,
-                                    time_points=patient.time_points,
-                                    ece_mask=ece_mask[index_270],
-                                    filename=str(path_plot /
-                                                 MRImage.resolve_name(
-                                                     patient.id, self.ref_t,
-                                                     "png")))
+                    ece_mask_plot = ece_mask[index_270]
+                plot_ece_curves(curves=ss_mean_curves,
+                                time_points=patient.time_points,
+                                ece_mask=ece_mask_plot,
+                                filename=str(path_plot /
+                                             MRImage.resolve_name(
+                                                 patient.id, self.ref_t,
+                                                 "png")))
 
-                ss_ece_interp, time_points_interp = interp_missing_points(
-                    ss_ece_curves=ss_ece_curves,
-                    ss_mean_curves=ss_mean_curves,
-                    time_points=patient.time_points)
-
-                self.export_all_dfs(patient=patient,
-                                    ss_mean_curves=ss_mean_curves,
-                                    ss_ece_curves=ss_ece_curves,
-                                    ss_ece_curves_interp=ss_ece_interp,
-                                    time_points_interp=time_points_interp,
-                                    path_superspels_df=path_ss_df)
+                save_curves_and_interp_to_csv(patient=patient,
+                                              curves=ss_ece_curves,
+                                              ref_t=self.ref_t,
+                                              path=path_ss_df,
+                                              curve_name='ece')
 
             else:
                 self.predicted_diagnosis.append(
@@ -126,15 +121,12 @@ class ECE(AbstractMethod):
                      patient.subclass_diagnosis, patient.nodular,
                      ece_labels.__len__(), ece_vol])
 
-            if self.domain == 'REG':
-                nib.save(nib.Nifti1Image(benign_mask[-1], **nifti_args[-1]),
-                         str(path_b_images / patient.get_image(
-                             self.ref_t).filename))
-            elif self.domain == 'ORIG':
-                for i in range(len(ece_mask)):
-                    nib.save(nib.Nifti1Image(benign_mask[i], **nifti_args[i]),
-                             str(path_b_images / patient.get_image(
-                                 patient.time_points[i]).filename))
+            save_superspels_masks(ss_mask=benign_mask,
+                                  nifti_args=nifti_args,
+                                  patient=patient,
+                                  domain=self.domain,
+                                  ref_t=self.ref_t,
+                                  path=path_b_images)
 
             patient.path_masks['ece'] = self.path_ece
         except:
@@ -149,109 +141,3 @@ class ECE(AbstractMethod):
 
     def results(self):
         return self.predicted_diagnosis
-
-    @staticmethod
-    def define_ece_curves(len_time_points, ss_mean_curves, ece_labels):
-        ss_ece_curves = np.zeros(
-            (len(ece_labels), len_time_points))
-
-        for l in ece_labels:
-            ss_ece_curves[ece_labels.index(l)] = ss_mean_curves[l]
-
-        return ss_ece_curves
-
-    @staticmethod
-    def define_ece_mask(ece_labels, ss_mask):
-        ece_mask = []
-        benign_mask = []
-
-        for i in range(len(ss_mask)):
-            temp_mask = np.copy(ss_mask[i])
-            mask = np.isin(ss_mask[i], ece_labels)
-            temp_mask[i][~mask] = 0
-            ece_mask.append(temp_mask[i])
-
-            ss_mask[i][mask] = 0
-            benign_mask.append(ss_mask[i])
-        return ece_mask, benign_mask
-
-    def define_superspels_mask(self, patient: Patient):
-        ss_mask = []
-        nifti_args = []
-
-        if self.domain == 'REG':
-            nifti_args.append(patient.get_image(self.ref_t).nifti_props)
-            ss_mask.append(patient.get_image(self.ref_t).masks[
-                               "supervoxels"].data.astype(np.int32))
-
-        elif self.domain == 'ORIG':
-            for t in patient.time_points:
-                nifti_args.append(
-                    patient.get_image(t).masks["supervoxels"].nifti_props)
-                ss_mask.append(
-                    patient.get_image(t).masks["supervoxels"].data.astype(
-                        np.int32))
-
-        return ss_mask, nifti_args
-
-    def define_superspels_curves(self, patient: Patient, ss_mask,
-                                 images_corrected):
-
-        ss_mean_curve = np.zeros(
-            (int(patient.get_image(self.ref_t).masks[
-                     "supervoxels"].data.max()) + 1,
-             patient.time_points.__len__()))
-
-        if self.domain == 'REG':
-            ss_mean_curve = define_superspels_curve_reg(patient,
-                                                        images_corrected,
-                                                        ss_mask,
-                                                        self.ref_t)
-
-        if self.domain == 'ORIG':
-
-            for t in patient.time_points:
-                rps = skimage.measure.regionprops(ss_mask[-1])
-                img = correct_image_background(patient, t)
-
-                for rp in rps:
-                    slice_bbox = tuple(
-                        [slice(dim_start, dim_finish) for dim_start, dim_finish
-                         in zip(rp.bbox[:3], rp.bbox[3:])])
-                    lbl_in_bbox = rp.image
-                    img_in_bbox = img[slice_bbox]
-
-                    ss_mean_curve[rp.label, patient.time_points.index(t)] = \
-                        img_in_bbox[lbl_in_bbox > 0].mean()
-
-        return ss_mean_curve
-
-    def export_all_dfs(self, patient: Patient, ss_mean_curves, ss_ece_curves,
-                       ss_ece_curves_interp, time_points_interp,
-                       path_superspels_df: Path):
-        export_curves_to_csv(
-            curves=ss_ece_curves,
-            time_points=patient.time_points,
-            filename=str(
-                path_superspels_df /
-                f'ece_{MRImage.resolve_name(patient.id,
-                                            self.ref_t,
-                                            "csv")}'))
-
-        export_curves_to_csv(
-            curves=ss_ece_curves_interp,
-            time_points=time_points_interp,
-            filename=str(
-                path_superspels_df /
-                f'intep_ece_{MRImage.resolve_name(patient.id,
-                                                  self.ref_t,
-                                                  "csv")}'))
-
-        export_curves_to_csv(
-            curves=ss_mean_curves,
-            time_points=patient.time_points,
-            filename=str(
-                path_superspels_df /
-                f'all_{MRImage.resolve_name(patient.id,
-                                            self.ref_t,
-                                            "csv")}'))
