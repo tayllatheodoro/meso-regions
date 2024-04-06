@@ -25,19 +25,21 @@ class ECE(AbstractMethod):
 
     def apply(self, patient: Patient, **kwargs):
         try:
+            print("\r", end='')
+            print("ECE processing......", end="", flush=True)
+
+            # Paths
             path_m_images = self.path_ece / 'ece_images'
             path_b_images = self.path_ece / 'benign_images'
             path_plot = self.path_ece / 'plots'
-            path_ss_df = self.path_ece / 'superspels_df'
+            path_ss_df = self.path_ece / 'curves_df'
 
             os.makedirs(path_ss_df, exist_ok=True)
             os.makedirs(path_plot, exist_ok=True)
             os.makedirs(path_m_images, exist_ok=True)
             os.makedirs(path_b_images, exist_ok=True)
-            print("\r", end='')
-            print("ECE processing......", end="", flush=True)
 
-            # select which superspels have ece pattern
+            # Select which superspels have ece pattern
             index_270 = patient.time_points.index(270)
             ece_labels = superspels_labels_with_ece(
                 index_270=index_270,
@@ -79,6 +81,7 @@ class ECE(AbstractMethod):
                 patient.curves['ece'] = ece_curves
                 patient.curves['benign'] = benign_curves
 
+                # Save mean intensity curves to csv and interpolate of it
                 save_curves_and_interp_to_csv(patient=patient,
                                               curves=ece_curves,
                                               ref_t=self.ref_t,
@@ -100,7 +103,8 @@ class ECE(AbstractMethod):
                 elif self.domain == 'ORIG':
                     ece_mask_plot = ece_mask[index_270]
                     benign_mask_plot = benign_mask[index_270]
-                plot_curves(curve=benign_curves,
+                # Plot mean intensity curves
+                plot_curves(curve=ece_curves,
                             time_points=patient.time_points,
                             mask=ece_mask_plot,
                             filename=str(path_plot / f'ece_{

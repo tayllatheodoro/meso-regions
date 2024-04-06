@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from src.mesoECE.data_structure import Patient, MRImage
 from src.mesoECE.methods import AbstractMethod
@@ -18,18 +19,24 @@ class Superspel(AbstractMethod):
 
     def apply(self, patient: Patient, **kwargs):
         try:
-            path_ss_df = self.path_superspels / 'superspels_df'
+            print("\r", end='')
+            print("Superspels processing......", end="", flush=True)
+            # Paths
+            path_ss_df = self.path_superspels / 'curves_df'
             path_plot = self.path_superspels / 'plots'
+            os.makedirs(path_ss_df, exist_ok=True)
+            os.makedirs(path_plot, exist_ok=True)
 
             # Superspels mask (4D array) and nifti_args
             patient.ss_mask, patient.nifti_args = define_superspels_mask(
                 patient=patient,
                 domain=self.domain,
                 ref_t=self.ref_t)
+
             # Correct images background
             images_corrected = correct_images_background(patient=patient)
 
-            # Define mean intensity curves for all superspels and save to csv
+            # Define mean intensity curves for all superspels
             patient.curves['mean_intensity'] = define_superspels_curves(
                 patient=patient,
                 images_corrected=images_corrected,
@@ -37,6 +44,7 @@ class Superspel(AbstractMethod):
                 domain=self.domain,
                 ref_t=self.ref_t)
 
+            # Save mean intensity curves to csv and interpolate of it
             save_curves_and_interp_to_csv(
                 patient=patient,
                 curves=patient.curves['mean_intensity'],
@@ -44,6 +52,7 @@ class Superspel(AbstractMethod):
                 path=path_ss_df,
                 curve_name='mean_intensity_curves')
 
+            # Plot mean intensity curves
             plot_curves(curve=patient.curves['mean_intensity'],
                         time_points=patient.time_points,
                         mask=patient.get_image(self.ref_t).masks[
