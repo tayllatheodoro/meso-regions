@@ -16,6 +16,7 @@ from IPython.core.display_functions import display
 import src.mesoECE.methods.mask_preprocess as mask_preprocess_module
 import src.mesoECE.methods.img_preprocess as img_preprocess_module
 import src.mesoECE.methods.supervoxel as supervoxel_module
+import src.mesoECE.methods.superspels as superspels_module
 import \
     src.mesoECE.methods.supervoxel_with_classifier as supervoxel_with_ece_module
 
@@ -96,6 +97,7 @@ class Experiment:
         mapping_module = {
             "mask_preprocess": mask_preprocess_module,
             "img_preprocess": img_preprocess_module,
+            "superspels": superspels_module,
             "supervoxel_with_ece": supervoxel_with_ece_module,
             "supervoxel": supervoxel_module,
             "classifier": classifier_module

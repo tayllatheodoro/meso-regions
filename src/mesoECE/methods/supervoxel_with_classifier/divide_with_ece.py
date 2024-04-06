@@ -9,7 +9,7 @@ from src.mesoECE.methods import AbstractMethod
 
 from src.mesoECE.methods.utils import define_masks_volume, \
     correct_image_background, correct_images_background
-from src.mesoECE.methods.classifier.ece import ece_label_selection
+from src.mesoECE.methods.classifier.ece import superspels_labels_with_ece
 
 
 class DivideWithECE(AbstractMethod):
@@ -183,7 +183,7 @@ class DivideWithECE(AbstractMethod):
         ss_mean = self.define_superspels_curves(patient,
                                                 supervoxel_mask,
                                                 image_corrected)
-        ece_labels = ece_label_selection(
+        ece_labels = superspels_labels_with_ece(
             index_270=patient.time_points.index(270),
             ss_mean=ss_mean)
         s_vol = define_masks_volume(mask=supervoxel_mask)

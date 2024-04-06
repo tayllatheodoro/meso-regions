@@ -27,6 +27,9 @@ class Patient:
         self.nodular = nodular
         self.supervoxels_m_masks = []
         self.supervoxels_b_masks = []
+        self.curves = {}
+        self.nifti_args = None
+        self.ss_mask = None
         self.load()
 
     def load(self) -> None:

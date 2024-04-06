@@ -1,8 +1,4 @@
 import numpy as np
-import pandas as pd
-import skimage
-from matplotlib import pyplot as plt
-
 from src.mesoECE.data_structure import Patient
 
 
