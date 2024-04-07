@@ -1,10 +1,4 @@
 import numpy as np
-import pandas as pd
-import skimage
-from matplotlib import pyplot as plt
-from scipy.interpolate import interp1d
-import nibabel as nib
-from src.mesoECE.data_structure import Patient, MRImage
 
 
 def superspels_labels_with_ece(index_270, mean_intensity_curve):
@@ -33,8 +27,8 @@ def define_ece_curves(len_time_points, mean_intensity_curves, ece_labels):
     ece_curves = np.zeros(
         (len(ece_labels), len_time_points))
 
-    for l in ece_labels:
-        ece_curves[ece_labels.index(l)] = mean_intensity_curves[l]
+    for label in ece_labels:
+        ece_curves[ece_labels.index(label)] = mean_intensity_curves[label]
 
     benign_curves = np.delete(mean_intensity_curves, ece_labels, axis=0)
     return ece_curves, benign_curves

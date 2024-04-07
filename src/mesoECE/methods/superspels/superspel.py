@@ -4,7 +4,7 @@ from src.mesoECE.data_structure import Patient, MRImage
 from src.mesoECE.methods import AbstractMethod
 from src.mesoECE.methods.utils import correct_images_background
 from src.mesoECE.methods.superspels.utils import (define_superspels_mask,
-                                                  define_superspels_curves,
+                                                  define_mean_intensity_curves,
                                                   save_curves_and_interp_to_csv,
                                                   plot_curves)
 
@@ -38,12 +38,11 @@ class Superspel(AbstractMethod):
             images_corrected = correct_images_background(patient=patient)
 
             # Define mean intensity curves for all superspels
-            patient.curves['mean_intensity'] = define_superspels_curves(
+            patient.curves['mean_intensity'] = define_mean_intensity_curves(
                 patient=patient,
                 images_corrected=images_corrected,
-                ss_mask=patient.ss_mask,
-                domain=self.domain,
-                ref_t=self.ref_t)
+                mask=patient.ss_mask,
+                domain=self.domain)
 
             # Save mean intensity curves to csv and interpolate of it
             save_curves_and_interp_to_csv(

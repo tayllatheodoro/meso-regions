@@ -56,7 +56,7 @@ class ECE(AbstractMethod):
             # Calculate the volume of the ECE mask
             ece_mask_vol = 0
             if self.domain == 'REG':
-                ece_mask_vol = ece_mask[-1]
+                ece_mask_vol = ece_mask
 
             elif self.domain == 'ORIG':
                 ece_mask_vol = ece_mask[index_270]
@@ -84,47 +84,40 @@ class ECE(AbstractMethod):
                 # Save mean intensity curves to csv and interpolate of it
                 save_curves_and_interp_to_csv(patient=patient,
                                               curves=ece_curves,
-                                              ref_t=self.ref_t,
                                               path=path_ss_df,
                                               curve_name='ece')
 
                 save_curves_and_interp_to_csv(patient=patient,
                                               curves=benign_curves,
-                                              ref_t=self.ref_t,
                                               path=path_ss_df,
                                               curve_name='benign')
                 # Plot ece curves vs time
                 ece_mask_plot = None
                 benign_mask_plot = None
                 if self.domain == 'REG':
-                    ece_mask_plot = ece_mask[-1]
-                    benign_mask_plot = benign_mask[-1]
+                    ece_mask_plot = ece_mask
+                    benign_mask_plot = benign_mask
 
                 elif self.domain == 'ORIG':
                     ece_mask_plot = ece_mask[index_270]
                     benign_mask_plot = benign_mask[index_270]
+
                 # Plot mean intensity curves
                 plot_curves(curve=ece_curves,
                             time_points=patient.time_points,
                             mask=ece_mask_plot,
-                            filename=str(path_plot / f'ece_{
-                            MRImage.resolve_name(
-                                patient.id, self.ref_t,
-                                ".png")}'),
+                            filename=str(path_plot / f'ece{patient.id}.png'),
                             mean_plot=True)
 
                 plot_curves(curve=benign_curves,
                             time_points=patient.time_points,
                             mask=benign_mask_plot,
-                            filename=str(path_plot / f'benign_{
-                            MRImage.resolve_name(
-                                patient.id, self.ref_t,
-                                ".png")}'),
+                            filename=str(path_plot / f'benign_{patient.id}.png'),
                             mean_plot=True,
                             title='Benign Curves')
 
                 # Save ece mask
-                save_superspels_masks(ss_mask=ece_mask,
+                save_superspels_masks(mask=ece_mask,
                                       nifti_args=patient.nifti_args,
                                       patient=patient,
                                       domain=self.domain,
@@ -138,7 +131,7 @@ class ECE(AbstractMethod):
                      ece_labels.__len__(), ece_vol])
 
             # Save benign mask
-            save_superspels_masks(ss_mask=benign_mask,
+            save_superspels_masks(mask=benign_mask,
                                   nifti_args=patient.nifti_args,
                                   patient=patient,
                                   domain=self.domain,

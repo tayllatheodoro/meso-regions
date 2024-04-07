@@ -4,12 +4,15 @@ import skimage
 from skimage.segmentation import slic
 from pathlib import Path
 
+from src.mesoECE.data_structure import MRImage
 from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
+from src.mesoECE.methods.superspels.utils import define_mean_intensity_curves, \
+    save_curves_and_interp_to_csv, save_superspels_masks, plot_curves
 
-from src.mesoECE.methods.utils import define_masks_volume, \
-    correct_image_background, correct_images_background
-from src.mesoECE.methods.classifier.ece import superspels_labels_with_ece
+from src.mesoECE.methods.utils import (define_masks_volume,
+                                       correct_images_background)
+from src.mesoECE.methods.classifier.utils import superspels_labels_with_ece
 
 
 class DivideWithECE(AbstractMethod):
@@ -20,6 +23,7 @@ class DivideWithECE(AbstractMethod):
                  predict_only_small: bool = False,
                  decrease_n_segments: bool = False):
         super().__init__()
+        self.images_corrected = None
         self.s_vol = None
         self.p_vol = None
         self.path_sv = path
@@ -34,22 +38,19 @@ class DivideWithECE(AbstractMethod):
         self.p_size = p_size
         self.predict_only_small = predict_only_small
 
-    #TODO: Implement with sicle, disf
-    #TODO: Implement plot and save supervoxels
-
+    # TODO: Implement with sicle, disf
     def apply(self, patient: Patient, **kwargs):
         try:
             path_m_images = self.path_sv / 'ece_images'
             path_b_images = self.path_sv / 'benign_images'
             path_plot = self.path_sv / 'plots'
-            path_ss_df = self.path_sv / 'superspels_df'
+            path_df = self.path_sv / 'superspels_df'
 
-            nifti_args = patient.get_image(self.ref_t).masks[
-                "pleural_region"].nifti_props
             pleural_mask = patient.get_image(self.ref_t).masks[
                 "pleural_region"].data.astype(np.int32)
 
             image = patient.get_image(self.ref_t).data
+            self.images_corrected = correct_images_background(patient)
 
             if self.predict_only_small:
                 self.divide_with_ece_small_slic(patient, image,
@@ -76,21 +77,65 @@ class DivideWithECE(AbstractMethod):
                      patient.subclass_diagnosis, patient.nodular,
                      n_supervoxel, self.s_vol])
 
+                ece_curves = define_mean_intensity_curves(
+                    patient=patient,
+                    mask=sv_m_mask,
+                    images_corrected=self.images_corrected,
+                    domain=self.domain)
+
+                patient.curves['ece'] = ece_curves
+
+                save_curves_and_interp_to_csv(patient=patient,
+                                              curves=ece_curves,
+                                              path=path_df,
+                                              curve_name='ece')
+
+                # Plot mean intensity curves
+                plot_curves(curve=ece_curves,
+                            time_points=patient.time_points,
+                            mask=sv_m_mask,
+                            filename=str(path_plot / f'ece{patient.id}.png'),
+                            mean_plot=True)
+
+                save_superspels_masks(mask=sv_m_mask,
+                                      nifti_args=patient.nifti_args,
+                                      patient=patient,
+                                      domain=self.domain,
+                                      ref_t=self.ref_t,
+                                      path=path_m_images)
+
             else:
                 self.predicted_diagnosis.append(
                     [patient.id, patient.diagnosis, 0,
                      patient.subclass_diagnosis, patient.nodular,
                      n_supervoxel, self.s_vol])
 
-                nib.save(nib.Nifti1Image(sv_m_mask.astype(np.int32),
-                                         **nifti_args),
-                         str(path_m_images / patient.get_image(
-                             self.ref_t).filename))
             # save benign supervoxels
-            nib.save(nib.Nifti1Image(sv_b_mask.astype(np.int32),
-                                     **nifti_args),
-                     str(path_b_images / patient.get_image(
-                         self.ref_t).filename))
+
+            benign_curves = define_mean_intensity_curves(
+                patient=patient,
+                mask=sv_b_mask,
+                images_corrected=self.images_corrected,
+                domain=self.domain)
+
+            patient.curves['benign'] = benign_curves
+            save_curves_and_interp_to_csv(patient=patient,
+                                          curves=benign_curves,
+                                          path=path_df,
+                                          curve_name='benign')
+            save_superspels_masks(mask=sv_b_mask,
+                                  nifti_args=patient.nifti_args,
+                                  patient=patient,
+                                  domain=self.domain,
+                                  ref_t=self.ref_t,
+                                  path=path_b_images)
+
+            plot_curves(curve=benign_curves,
+                        time_points=patient.time_points,
+                        mask=sv_b_mask,
+                        filename=str(path_plot / f'benign_{patient.id}.png'),
+                        mean_plot=True,
+                        title='Benign Curves')
 
             patient.path_masks['supervoxels'] = self.path_sv
 
@@ -113,7 +158,8 @@ class DivideWithECE(AbstractMethod):
             print("\r", end='')
             print("Dividing...", end="", flush=True)
 
-            supervoxel_mask = slic(image, mask=mask,
+            supervoxel_mask = slic(image=image,
+                                   mask=mask,
                                    compactness=self.compactness,
                                    n_segments=n_segments)
             rps = skimage.measure.regionprops(supervoxel_mask)
@@ -150,7 +196,8 @@ class DivideWithECE(AbstractMethod):
             print("\r", end='')
             print("Dividing...", end="", flush=True)
 
-            supervoxel_mask = slic(image, mask=mask,
+            supervoxel_mask = slic(image=image,
+                                   mask=mask,
                                    compactness=self.compactness,
                                    n_segments=n_segments)
             rps = skimage.measure.regionprops(supervoxel_mask)
@@ -179,14 +226,19 @@ class DivideWithECE(AbstractMethod):
             patient.supervoxels_b_masks.append(mask)
 
     def predict_ece(self, patient: Patient, supervoxel_mask):
-        image_corrected = correct_images_background(patient)
-        ss_mean = self.define_superspels_curves(patient,
-                                                supervoxel_mask,
-                                                image_corrected)
+
+        mean_intensity_curve = define_mean_intensity_curves(
+            patient=patient,
+            mask=supervoxel_mask,
+            images_corrected=self.images_corrected,
+            domain=self.domain)
+
         ece_labels = superspels_labels_with_ece(
             index_270=patient.time_points.index(270),
-            ss_mean=ss_mean)
+            mean_intensity_curve=mean_intensity_curve)
+
         s_vol = define_masks_volume(mask=supervoxel_mask)
+
         if ece_labels and s_vol > self.p_vol * 0.0001:
             predicted_diagnosis = 1
 
@@ -194,26 +246,6 @@ class DivideWithECE(AbstractMethod):
             predicted_diagnosis = 0
 
         return predicted_diagnosis
-
-    @staticmethod
-    def define_superspels_curves(patient: Patient,
-                                 supervoxel_mask,
-                                 image_corrected):
-        rps = skimage.measure.regionprops(supervoxel_mask)
-        ss_mean_curves = np.zeros((len(rps), len(patient.time_points)))
-
-        for rp in rps:
-            slice_bbox = tuple(
-                [slice(dim_start, dim_finish) for dim_start, dim_finish in
-                 zip(rp.bbox[:3], rp.bbox[3:])])
-            lbl_in_bbox = rp.image
-
-            for t in patient.time_points:
-                img = image_corrected[patient.time_points.index(t)]
-                img_in_bbox = img[slice_bbox]
-                ss_mean_curves[rp.label - 1, patient.time_points.index(t)] = \
-                    img_in_bbox[lbl_in_bbox > 0].mean()
-        return ss_mean_curves
 
     @staticmethod
     def combine_supervoxel_masks(patient: Patient, pleural_mask):
