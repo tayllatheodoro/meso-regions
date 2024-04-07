@@ -57,10 +57,7 @@ class Superspel(AbstractMethod):
                         time_points=patient.time_points,
                         mask=patient.get_image(self.ref_t).masks[
                             'supervoxels'].data,
-                        filename=str(path_plot / f'{
-                        MRImage.resolve_name(
-                            patient.id, self.ref_t,
-                            ".png")}'),
+                        filename=str(path_plot / f'{patient.id}.png'),
                         mean_plot=True,
                         title='All Curves')
 

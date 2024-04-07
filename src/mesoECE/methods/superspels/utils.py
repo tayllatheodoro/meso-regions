@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from scipy.interpolate import interp1d
 import nibabel as nib
 
-from src.mesoECE.data_structure import Patient, MRImage
+from src.mesoECE.data_structure import Patient
 
 
 def plot_curves(curve, mask, time_points,

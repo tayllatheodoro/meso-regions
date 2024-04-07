@@ -3,8 +3,6 @@ import numpy as np
 import skimage
 from skimage.segmentation import slic
 from pathlib import Path
-
-from src.mesoECE.data_structure import MRImage
 from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
 from src.mesoECE.methods.superspels.utils import define_mean_intensity_curves, \
@@ -44,7 +42,7 @@ class DivideWithECE(AbstractMethod):
             path_m_images = self.path_sv / 'ece_images'
             path_b_images = self.path_sv / 'benign_images'
             path_plot = self.path_sv / 'plots'
-            path_df = self.path_sv / 'superspels_df'
+            path_df = self.path_sv / 'curves_df'
 
             pleural_mask = patient.get_image(self.ref_t).masks[
                 "pleural_region"].data.astype(np.int32)
@@ -94,7 +92,7 @@ class DivideWithECE(AbstractMethod):
                 plot_curves(curve=ece_curves,
                             time_points=patient.time_points,
                             mask=sv_m_mask,
-                            filename=str(path_plot / f'ece{patient.id}.png'),
+                            filename=str(path_plot / f'ece_{patient.id}.png'),
                             mean_plot=True)
 
                 save_superspels_masks(mask=sv_m_mask,
@@ -137,7 +135,7 @@ class DivideWithECE(AbstractMethod):
                         mean_plot=True,
                         title='Benign Curves')
 
-            patient.path_masks['supervoxels'] = self.path_sv
+            patient.path_masks['supervoxels_with_ece'] = self.path_sv
 
         except:
             print("Error in patient:", patient.id)

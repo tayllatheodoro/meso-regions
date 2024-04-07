@@ -9,8 +9,10 @@ from pathlib import Path
 from src.mesoECE.data_structure import MRImage
 from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
-from src.mesoECE.methods.classifier.utils import plot_curves, \
-    save_superspels_masks, save_curves_and_interp_to_csv
+from src.mesoECE.methods.superspels.utils import (plot_curves,
+                                                  save_superspels_masks,
+                                                  save_curves_and_interp_to_csv,
+                                                  define_mean_intensity_curves)
 from src.mesoECE.methods.utils import (define_masks_volume,
                                        correct_image_background,
                                        correct_images_background)
@@ -33,11 +35,11 @@ class FullECE(AbstractMethod):
             path_m_images = self.path_ece / 'ece_images'
             path_b_images = self.path_ece / 'benign_images'
             path_plot = self.path_ece / 'plots'
-            path_ss_df = self.path_ece / 'superspels_df'
+            path_df = self.path_ece / 'curves_df'
 
             os.makedirs(path_m_images, exist_ok=True)
             os.makedirs(path_b_images, exist_ok=True)
-            os.makedirs(path_ss_df, exist_ok=True)
+            os.makedirs(path_df, exist_ok=True)
             os.makedirs(path_plot, exist_ok=True)
 
             # Calculate the volume of the pleural mask
@@ -82,37 +84,21 @@ class FullECE(AbstractMethod):
 
                 save_curves_and_interp_to_csv(patient=patient,
                                               curves=ece_curves,
-                                              ref_t=self.ref_t,
-                                              path=path_ss_df,
+                                              path=path_df,
                                               curve_name='ece')
                 plot_curves(curve=ece_curves,
                             mask=ece_labeled_mask,
                             time_points=patient.time_points,
                             filename=str(path_plot /
-                                         MRImage.resolve_name(
-                                             patient.id, self.ref_t,
-                                             "png")))
-                plot_curves(curve=ece_curves,
-                            mask=ece_labeled_mask,
-                            time_points=patient.time_points,
-                            filename=str(path_plot /
-                                         MRImage.resolve_name(
-                                             patient.id, self.ref_t,
-                                             "png")))
+                                         f'ece_{patient.id}.png'),
+                            mean_plot=True)
 
-                save_superspels_masks(ss_mask=ece_labeled_mask,
+                save_superspels_masks(mask=ece_labeled_mask,
                                       nifti_args=nifti_args,
                                       patient=patient,
                                       domain=self.domain,
                                       ref_t=self.ref_t,
                                       path=path_m_images)
-
-                save_superspels_masks(ss_mask=benign_labeled_mask,
-                                      nifti_args=nifti_args,
-                                      patient=patient,
-                                      domain=self.domain,
-                                      ref_t=self.ref_t,
-                                      path=path_b_images)
 
             else:
                 self.predicted_diagnosis.append(
@@ -120,7 +106,23 @@ class FullECE(AbstractMethod):
                      patient.subclass_diagnosis, patient.nodular,
                      ece_vol, ece_vol])
 
-            save_superspels_masks(ss_mask=benign_labeled_mask,
+            benign_curves = define_mean_intensity_curves(
+                patient=patient,
+                mask=benign_labeled_mask,
+                images_corrected=images_corrected,
+                domain=self.domain)
+            save_curves_and_interp_to_csv(patient=patient,
+                                          curves=benign_curves,
+                                          path=path_df,
+                                          curve_name='benign')
+            plot_curves(curve=benign_curves,
+                        mask=benign_labeled_mask,
+                        time_points=patient.time_points,
+                        filename=str(path_plot /
+                                     f'benign_{patient.id}.png'),
+                        mean_plot=True)
+
+            save_superspels_masks(mask=benign_labeled_mask,
                                   nifti_args=nifti_args,
                                   patient=patient,
                                   domain=self.domain,

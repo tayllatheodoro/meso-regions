@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from pathlib import Path
-from src.mesoECE.data_structure.patient import Patient, MRImage
+from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
 from src.mesoECE.methods.utils import define_masks_volume
 
@@ -32,9 +32,9 @@ class ECE(AbstractMethod):
             path_m_images = self.path_ece / 'ece_images'
             path_b_images = self.path_ece / 'benign_images'
             path_plot = self.path_ece / 'plots'
-            path_ss_df = self.path_ece / 'curves_df'
+            path_df = self.path_ece / 'curves_df'
 
-            os.makedirs(path_ss_df, exist_ok=True)
+            os.makedirs(path_df, exist_ok=True)
             os.makedirs(path_plot, exist_ok=True)
             os.makedirs(path_m_images, exist_ok=True)
             os.makedirs(path_b_images, exist_ok=True)
@@ -84,12 +84,12 @@ class ECE(AbstractMethod):
                 # Save mean intensity curves to csv and interpolate of it
                 save_curves_and_interp_to_csv(patient=patient,
                                               curves=ece_curves,
-                                              path=path_ss_df,
+                                              path=path_df,
                                               curve_name='ece')
 
                 save_curves_and_interp_to_csv(patient=patient,
                                               curves=benign_curves,
-                                              path=path_ss_df,
+                                              path=path_df,
                                               curve_name='benign')
                 # Plot ece curves vs time
                 ece_mask_plot = None
@@ -106,7 +106,7 @@ class ECE(AbstractMethod):
                 plot_curves(curve=ece_curves,
                             time_points=patient.time_points,
                             mask=ece_mask_plot,
-                            filename=str(path_plot / f'ece{patient.id}.png'),
+                            filename=str(path_plot / f'ece_{patient.id}.png'),
                             mean_plot=True)
 
                 plot_curves(curve=benign_curves,
