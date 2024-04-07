@@ -1,4 +1,3 @@
-import nibabel as nib
 import numpy as np
 import skimage
 from skimage.segmentation import slic
