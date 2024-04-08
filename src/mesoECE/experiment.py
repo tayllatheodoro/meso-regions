@@ -31,7 +31,7 @@ class Experiment:
                  path_experiments: Path,
                  path_classes: Path,
                  ids: List[int],
-                 config: dict,
+                 config: List[dict],
                  threads: int = 0):
         self.classifier = None
         self.path_prev_exp = None
