@@ -12,7 +12,6 @@ from sklearn import metrics
 
 import numpy as np
 import pandas as pd
-from IPython.core.display_functions import display
 import src.mesoECE.methods.mask_preprocess as mask_preprocess_module
 import src.mesoECE.methods.img_preprocess as img_preprocess_module
 import src.mesoECE.methods.supervoxel as supervoxel_module
@@ -156,7 +155,7 @@ class Experiment:
             self.classifier = "FullECE"
 
         df = pd.DataFrame(self.results[self.classifier],
-                          columns=['IDs', 'GRUND_TRUTH', 'PREDICT', 'SUBCLASS',
+                          columns=['IDs', 'GRUND_TRUTH', 'ECE', 'SUBCLASS',
                                    'NODULAR', 'QT_SUPERVOXELS',
                                    'VOLUME_SUPERVOXELS'])
         path_results = self.path_prev_exp / 'diagnosis.csv'

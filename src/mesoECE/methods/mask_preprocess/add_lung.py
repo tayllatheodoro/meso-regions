@@ -7,7 +7,7 @@ from src.mesoECE.methods import AbstractMethod
 
 
 class AddLung(AbstractMethod):
-    def __init__(self, path: Path, ref_t: int):
+    def __init__(self, path: Path, ref_t: int =270):
         super().__init__()
         self.path_fluid_and_lung = path
         self.ref_t = ref_t

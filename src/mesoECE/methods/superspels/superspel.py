@@ -48,7 +48,6 @@ class Superspel(AbstractMethod):
             save_curves_and_interp_to_csv(
                 patient=patient,
                 curves=patient.curves['mean_intensity'],
-                ref_t=self.ref_t,
                 path=path_ss_df,
                 curve_name='mean_intensity_curves')
 

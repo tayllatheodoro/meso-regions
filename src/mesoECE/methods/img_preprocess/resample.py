@@ -10,7 +10,7 @@ from src.mesoECE.methods import AbstractMethod
 
 
 class Resample(AbstractMethod):
-    def __init__(self, path: Path, reference_t: int = 270,
+    def __init__(self, path: Path, ref_t: int = 270,
                  img_spacing: float = 1.78, img_dim=None):
         super().__init__()
         if img_dim is None:
@@ -20,7 +20,7 @@ class Resample(AbstractMethod):
         self.thread_safe = False
         self.img_spacing = img_spacing
         self.img_dim = img_dim
-        self.reference_t = reference_t
+        self.ref_t = ref_t
 
     def apply(self, patient, **kwargs):
 
@@ -48,7 +48,7 @@ class Resample(AbstractMethod):
                 _, t = MRImage.parse_name(img_file)
 
                 # Reading image as ANTsImage from numpy
-                nifti_args = patient.get_image(self.reference_t).nifti_props
+                nifti_args = patient.get_image(self.ref_t).nifti_props
                 image_ants = ants.from_nibabel(
                     nib.Nifti1Image(patient.get_image(t).data, **nifti_args))
                 print("\n")
@@ -80,7 +80,7 @@ class Resample(AbstractMethod):
                 try:
                     # Resampling masks
                     for mask_type in patient.get_image(
-                            self.reference_t).masks.keys():
+                            self.ref_t).masks.keys():
                         try:
                             # Checking if masks type are available
                             print(

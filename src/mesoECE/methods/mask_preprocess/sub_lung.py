@@ -7,7 +7,7 @@ from src.mesoECE.methods import AbstractMethod
 
 
 class SubLung(AbstractMethod):
-    def __init__(self, path: Path, ref_t: int):
+    def __init__(self, path: Path, ref_t: int = 270):
         super().__init__()
         self.path_mask_sub_lung = path
         self.ref_t = ref_t

@@ -14,7 +14,7 @@ from src.mesoECE.methods.classifier.utils import superspels_labels_with_ece
 
 class DivideWithECE(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, n_segments: int,
-                 compactness: float, p_size: int,
+                 compactness: float, p_size: int = 1000,
                  method: str = None,
                  domain: str = None,
                  predict_only_small: bool = False,
@@ -151,7 +151,7 @@ class DivideWithECE(AbstractMethod):
 
     def divide_with_ece_small_slic(self, patient: Patient, image, mask,
                                    n_segments):
-        if np.sum(mask) >= self.p_vol * self.p_size:
+        if np.sum(mask) >= self.p_size:
             print("\r", end='')
             print("Dividing...", end="", flush=True)
 
@@ -180,16 +180,16 @@ class DivideWithECE(AbstractMethod):
                                                 n_segments)
 
         elif (self.predict_ece(patient, mask) == 1 and
-              np.sum(mask) < self.p_vol * self.p_size):
+              np.sum(mask) < self.p_size):
             patient.supervoxels_m_masks.append(mask)
         elif (self.predict_ece(patient, mask) == 0 and
-              np.sum(mask) < self.p_vol * self.p_size):
+              np.sum(mask) < self.p_size):
             patient.supervoxels_b_masks.append(mask)
 
     def divide_with_ece_slic(self, patient: Patient, image, mask,
                              n_segments):
         if (self.predict_ece(patient, mask) == 0 and
-                np.sum(mask) >= self.p_vol * self.p_size):
+                np.sum(mask) >= self.p_size):
             print("\r", end='')
             print("Dividing...", end="", flush=True)
 
@@ -219,7 +219,7 @@ class DivideWithECE(AbstractMethod):
         elif self.predict_ece(patient, mask) == 1:
             patient.supervoxels_m_masks.append(mask)
         elif (self.predict_ece(patient, mask) == 0 and
-              np.sum(mask) < self.p_vol * self.p_size):
+              np.sum(mask) < self.p_size):
             patient.supervoxels_b_masks.append(mask)
 
     def predict_ece(self, patient: Patient, supervoxel_mask):
