@@ -3,8 +3,7 @@ from types import NoneType
 from typing import Union, Any
 from pathlib import Path
 import skimage
-from diagnosis import Diagnosis
-from mrimage import MRImage
+from src.mesoECE.data_structure.mrimage import MRImage
 
 
 class Patient:
@@ -53,8 +52,7 @@ class Patient:
                                       path_masks=self._path_masks,
                                       filename=MRImage.resolve_name(self.id, t))
 
-            self._background_otsu[t] = skimage.filters.threshold_otsu(
-                self._images[t].data)
+            self._background_otsu[t] = skimage.filters.threshold_otsu(self._images[t].data)
 
     def get_image(self, t) -> MRImage:
         return self._images[t]

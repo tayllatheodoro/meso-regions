@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Tuple
 import nibabel as nib
 import numpy as np
-from mrimage_mask import MRImageMask
+from src.mesoECE.data_structure.mrimage_mask import MRImageMask
 
 
 class MRImage:

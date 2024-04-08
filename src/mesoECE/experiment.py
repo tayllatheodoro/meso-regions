@@ -49,10 +49,12 @@ class Experiment:
         if len(masks_list) > 1:
             for mask in masks_list:
                 masks_dir = {mask: path_masks / mask}
+        elif masks_list[0] == 'fluid':
+            masks_dir = {'fluid': path_masks/'fluid'}
         else:
             masks_dir = {'pleural_region': path_masks}
 
-        self.image_dataset = MesoDataset(path_patients=path_images,
+        self.image_dataset = MesoDataset(path_images=path_images,
                                          path_classes=path_classes,
                                          path_masks=masks_dir, ids=ids,
                                          threads=threads)
@@ -132,12 +134,12 @@ class Experiment:
         self.results = {}
         for method in self.pipeline_methods:
             self.image_dataset.apply_method(method)
-            if method.results() is not None:
-                self.results[method.__class__.__name__] = method.results()
+            if method.result() is not None:
+                self.results[method.__class__.__name__] = method.result()
 
-        self.result_classifier()
-        self.results_seeds()
-        self.classifier_metrics()
+        # self.result_classifier()
+        # self.results_seeds()
+        # self.classifier_metrics()
 
     def result_analysis(self):
 

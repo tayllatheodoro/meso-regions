@@ -2,14 +2,14 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Union
 from tqdm import tqdm
-from diagnosis import Diagnosis
-from patient import Patient
+from src.mesoECE.data_structure.diagnosis import Diagnosis
+from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
 
 
 class MesoDataset:
     def __init__(self,
-                 path_patients: Path,
+                 path_images: Path,
                  path_classes: Path,
                  path_masks: dict[str, Path],
                  ids: Union[List[int], None] = None,
@@ -18,10 +18,11 @@ class MesoDataset:
         self.path_masks = path_masks
         self.patients: List[Patient] = []
         self.classes_df = None
-        self.path_patients = path_patients
+        self.path_images = path_images
         self.path_classes = path_classes
         self.ids = ids
         self.threads = threads
+
         self.load()
 
     def load(self) -> None:
@@ -33,7 +34,7 @@ class MesoDataset:
         self.classes_df.set_index('ID', inplace=True)
 
         for id in tqdm(self.ids, desc="Loading Patients"):
-            self.patients.append(Patient(path=self.path_patients, id=id,
+            self.patients.append(Patient(path=self.path_images, id=id,
                                          diagnosis=self.classes_df.loc[
                                              id, 'CLASS'],
                                          subclass_diagnosis=self.classes_df.loc[

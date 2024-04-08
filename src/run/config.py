@@ -73,8 +73,8 @@ def define_resample(ref_t: int = 270, img_spacing: float = 1.78, img_dim=None):
 
 
 ## module: mask_preprocess
-def define_config_dilation(ref_t, dilation_radius, p_center_distance, otsu = False,
-                           mask_to_dilate = 'fluid'):
+def define_config_dilate(ref_t, dilation_radius, p_center_distance, otsu = False,
+                         mask_to_dilate = 'fluid'):
     """Define configuration for Dilation method.
 
     Args:
@@ -90,7 +90,7 @@ def define_config_dilation(ref_t, dilation_radius, p_center_distance, otsu = Fal
     """
     config_dilation = {
         "module": "mask_preprocess",
-        "method": "Dilation",
+        "method": "Dilate",
         "args": {"ref_t": ref_t, "dilation_radius": dilation_radius,
                  "p_center_distance": p_center_distance, "otsu": otsu,
                  "mask_to_dilate": mask_to_dilate}

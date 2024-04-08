@@ -19,7 +19,7 @@ def otsu_threshold_mask(img, mask):
     return mask_otsu
 
 
-class Dilation(AbstractMethod):
+class Dilate(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, dilation_radius: int,
                  p_center_distance: float = 0.5, otsu: bool = False,
                  mask_to_dilate: str = 'fluid'):
@@ -93,3 +93,6 @@ class Dilation(AbstractMethod):
         mask_dilated = np.where(mask_temp, self.dilate_mask(mask), mask)
 
         return mask_dilated
+
+    def result(self):
+        return None
