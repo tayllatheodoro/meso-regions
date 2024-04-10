@@ -32,7 +32,7 @@ threads = min(os.cpu_count(), len(ids_train))
 metrics_all = {}
 
 n_segments = np.arange(0, 1050, 50).tolist()
-p_seeds = [0.001, 0.005, 0.01, 0.05, 0.1]
+p_seeds = [0.001, 0.005, 0.01, 0.05]
 for mask in tqdm(list_masks_dilated, desc="Masks"):
     path_masks = path_masks_dilated / mask / 'Dilate/00001'
     metrics_mask = {}
@@ -98,7 +98,7 @@ for mask in tqdm(list_masks_dilated, desc="Masks"):
                     config=config,
                     threads=threads)
                 exp = experiment.execute_pipeline()
-                metrics_exp = exp.classifier_metrics()
+                metrics_exp = experiment.classifier_metrics()
                 print(metrics_exp)
 
                 metrics_all[
