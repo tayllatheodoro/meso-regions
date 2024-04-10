@@ -45,9 +45,10 @@ def plot_curves(curve, mask, time_points,
         mean = np.mean(non_zero_curve, axis=0)
         std = np.std(non_zero_curve, axis=0)
 
-        plt.plot(mean, label="Mean Curve", color="blue")
-        plt.fill_between(range(len(mean)), mean - std, mean + std, color="blue",
+        plt.plot(time_points,mean, label="Mean Curve", color="blue")
+        plt.fill_between(time_points, mean - std, mean + std, color="blue",
                          alpha=0.2)
+        plt.axvline(x=270, color='red')
 
 
         plt.xlabel("Time Points")

@@ -69,28 +69,29 @@ class Experiment:
 
         os.makedirs(path_part_exp, exist_ok=True)
 
-        partial_exp_dirs = sorted(os.listdir(path_part_exp))
-
-        if len(partial_exp_dirs) > 0:
-            # try to read the experiment config and data
-            for part_exp in partial_exp_dirs:
-                with open(path_part_exp / part_exp / 'config.json') as j_file:
-                    current_config = json.load(j_file)
-                    if current_config == config:
-                        return path_part_exp / part_exp
-            id_exp = int(partial_exp_dirs[-1]) + 1
-        else:
-            id_exp = 1
-
-        # create a new experiment dir
-        new_dir = f"{id_exp:05d}"
-        os.makedirs(path_part_exp / new_dir, exist_ok=True)
-        json_out_file_path = path_part_exp / new_dir / 'config.json'
+        # partial_exp_dirs = sorted(os.listdir(path_part_exp))
+        #
+        # if len(partial_exp_dirs) > 0:
+        #     # try to read the experiment config and data
+        #     for part_exp in partial_exp_dirs:
+        #         with open(path_part_exp / part_exp / 'config.json') as j_file:
+        #             current_config = json.load(j_file)
+        #             if current_config == config:
+        #                 return path_part_exp / part_exp
+        #     id_exp = int(partial_exp_dirs[-1]) + 1
+        # else:
+        #     id_exp = 1
+        #
+        # # create a new experiment dir
+        # new_dir = f"{id_exp:05d}"
+        # os.makedirs(path_part_exp / new_dir, exist_ok=True)
+        # json_out_file_path = path_part_exp / new_dir / 'config.json'
+        json_out_file_path = path_part_exp / 'config.json'
 
         with open(json_out_file_path, "w") as j_file:
             json.dump(config, j_file)
 
-        return path_part_exp / new_dir
+        return path_part_exp
 
     def instantiate_experiment(self):
         config_list = self.config
@@ -124,7 +125,7 @@ class Experiment:
 
             self.path_prev_exp = path_part_exp
             # save config in a file for all methods
-
+            print("\n")
             print(config)
 
             with open(path_part_exp / 'config_all.json', "w") as j_file:
@@ -139,7 +140,7 @@ class Experiment:
 
         self.result_classifier()
         self.results_seeds()
-        self.classifier_metrics()
+        # self.classifier_metrics()
 
     def result_analysis(self):
 
@@ -184,8 +185,6 @@ class Experiment:
         ids_fp = []
         ids_fn = []
 
-
-
         y = [result_ece[1] for result_ece in results_ece]
         y_pred = [result_ece[2] for result_ece in results_ece]
 
@@ -227,7 +226,7 @@ class Experiment:
         cm = metrics.confusion_matrix(y, y_pred, normalize='all')
         cmd = metrics.ConfusionMatrixDisplay(cm,
                                              display_labels=['NON-MALIGNANT',
-                                                   'MALIGNANT'])
+                                                             'MALIGNANT'])
         cmd.plot()
         cmd.figure_.savefig(
             str(self.path_prev_exp / 'confusion_matrix.png'))

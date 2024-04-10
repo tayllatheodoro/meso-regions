@@ -32,14 +32,15 @@ threads = min(os.cpu_count(), len(ids_train))
 metrics_all = {}
 
 n_segments = np.arange(0, 1050, 50).tolist()
-p_seeds = np.arange(0.001, 0.05, 0.001).tolist()
-for mask in list_masks_dilated:
+p_seeds = [0.001, 0.005, 0.01, 0.05, 0.1]
+for mask in tqdm(list_masks_dilated, desc="Masks"):
     path_masks = path_masks_dilated / mask / 'Dilate/00001'
+    metrics_mask = {}
 
-    for n_segment in range(0, 1050, 50):
-        for compactness in tqdm([0.1, 1, 10, 100]):
+    for n_segment in tqdm(range(0, 1050, 50), desc="N_Segments"):
+        for compactness in tqdm([0.1, 1, 10, 100], desc="Compactness"):
             if n_segment == 0:
-                for p_seeds_final in p_seeds:
+                for p_seeds_final in tqdm(p_seeds, desc="P_final_Seeds"):
                     # Define configuration
                     config_slic = define_config_slic(
                         ref_t=270,
@@ -69,6 +70,8 @@ for mask in list_masks_dilated:
 
                     metrics_all[
                         f'{mask}_{n_segment}_{compactness}_{p_seeds_final}'] = metrics_exp
+                    metrics_mask[
+                        f'{n_segment}_{compactness}_{0}'] = metrics_exp
             else:
 
                 # Define configuration
@@ -100,6 +103,11 @@ for mask in list_masks_dilated:
 
                 metrics_all[
                     f'{mask}_{n_segment}_{compactness}_{0}'] = metrics_exp
+                metrics_mask[
+                    f'{n_segment}_{compactness}_{0}'] = metrics_exp
+
+    df_metrics_mask = pd.DataFrame(metrics_mask)
+    df_metrics_mask.to_csv(path_output / f"metrics_{mask}_exp.csv")
 
 df_metrics = pd.DataFrame(metrics_all)
 df_metrics.to_csv(path_output / f"metrics_all_exp.csv")
