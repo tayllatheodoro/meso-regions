@@ -24,26 +24,41 @@ def superspels_labels_with_ece(index_270, mean_intensity_curve):
 
 
 def define_ece_curves(len_time_points, mean_intensity_curves, ece_labels):
-    ece_curves = np.zeros(
-        (len(ece_labels), len_time_points))
+    ece_curves = np.zeros_like(mean_intensity_curves)
 
     for label in ece_labels:
-        ece_curves[ece_labels.index(label)] = mean_intensity_curves[label]
+        ece_curves[label] = mean_intensity_curves[label]
 
     benign_curves = np.delete(mean_intensity_curves, ece_labels, axis=0)
     return ece_curves, benign_curves
 
 
 def define_ece_mask(ece_labels, ss_mask):
-    ece_mask = []
-    benign_mask = []
+    # ece_mask = []
+    # benign_mask = []
 
-    for i in range(len(ss_mask)):
-        temp_mask = np.copy(ss_mask[i])
-        mask = np.isin(ss_mask[i], ece_labels)
-        temp_mask[i][~mask] = 0
-        ece_mask.append(temp_mask[i])
+    #
+    # mask = np.isin(ss_mask, ece_labels)
+    # temp_mask[~mask] = 0
+    # ece_mask = temp_mask
+    #
+    # ss_mask[mask] = 0
+    # benign_mask = ss_mask
+    #
+    ece_mask = np.zeros_like(ss_mask)
+    for l in ece_labels:
+        ece_mask[l] = ss_mask[l]
 
-        ss_mask[i][mask] = 0
-        benign_mask.append(ss_mask[i])
-    return ece_mask, benign_mask
+
+    #temp_mask[mask] = 0
+    #benign_mask = temp_mask
+
+    # for i in range(len(ss_mask)):
+    #     temp_mask = np.copy(ss_mask[i])
+    #     mask = np.isin(ss_mask[i], ece_labels)
+    #     temp_mask[i][~mask] = 0
+    #     ece_mask.append(temp_mask[i])
+    #
+    #     ss_mask[i][mask] = 0
+    #     benign_mask.append(ss_mask[i])
+    return ece_mask

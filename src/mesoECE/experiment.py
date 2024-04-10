@@ -44,15 +44,15 @@ class Experiment:
 
         self.instantiate_experiment()
 
-        masks_list = os.listdir(path_masks)
-        masks_dir = None
-        if len(masks_list) > 1:
-            for mask in masks_list:
-                masks_dir = {mask: path_masks / mask}
-        elif masks_list[0] == 'fluid':
-            masks_dir = {'fluid': path_masks/'fluid'}
-        else:
-            masks_dir = {'pleural_region': path_masks}
+        # masks_list = os.listdir(path_masks)
+        # masks_dir = None
+        # if len(masks_list) > 1:
+        #     for mask in masks_list:
+        #         masks_dir = {mask: path_masks / mask}
+        # elif masks_list[0] == 'fluid':
+        #     masks_dir = {'fluid': path_masks/'fluid'}
+        # else:
+        masks_dir = {'pleural_region': path_masks}
 
         self.image_dataset = MesoDataset(path_images=path_images,
                                          path_classes=path_classes,
@@ -137,9 +137,9 @@ class Experiment:
             if method.result() is not None:
                 self.results[method.__class__.__name__] = method.result()
 
-        # self.result_classifier()
-        # self.results_seeds()
-        # self.classifier_metrics()
+        self.result_classifier()
+        self.results_seeds()
+        self.classifier_metrics()
 
     def result_analysis(self):
 
@@ -184,8 +184,10 @@ class Experiment:
         ids_fp = []
         ids_fn = []
 
-        y = results_ece[1]
-        y_pred = results_ece[2]
+
+
+        y = [result_ece[1] for result_ece in results_ece]
+        y_pred = [result_ece[2] for result_ece in results_ece]
 
         # add IDS of false positive and false negative to lists
         for result_ece in results_ece:
@@ -216,20 +218,23 @@ class Experiment:
 
         roc_display = metrics.RocCurveDisplay.from_predictions(y, y_pred)
         roc_display.plot()
+        plt.figure(figsize=(10, 6))
         plt.savefig(self.path_prev_exp / 'roc_curve.png')
         plt.show()
+        plt.close('all')
 
         # save confusion matrix with sklean
 
         cm = metrics.confusion_matrix(y, y_pred, normalize='all')
         cmd = metrics.ConfusionMatrixDisplay(cm,
                                              display_labels=['NON-MALIGNANT',
-                                                             'MALIGNANT'])
+                                                   'MALIGNANT'])
         cmd.plot()
         cmd.figure_.savefig(
             str(self.path_prev_exp / 'confusion_matrix.png'))
+        plt.figure(figsize=(10, 6))
         plt.show()
-
+        plt.close('all')
         df_metrics = pd.DataFrame.from_dict(metrics_exp,
                                             orient='index',
                                             columns=['Results'])

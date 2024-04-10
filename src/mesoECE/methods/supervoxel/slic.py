@@ -31,6 +31,7 @@ class SLIC(AbstractMethod):
                 n_seeds_final = int(volume * self.p_seeds_final)
             self.seeds.append([patient.id, 0, n_seeds_final])
 
+
             # Get Spacing
             image = patient.get_image(self.ref_t).data
             nifti_args = patient.get_image(self.ref_t).nifti_props

@@ -10,12 +10,21 @@ from src.mesoECE.data_structure import Patient
 
 def plot_curves(curve, mask, time_points,
                 filename=None,
-                title='ECE Curves', mean_plot=False):
+                title='ECE Curves', mean_plot=False, selected_labels=None):
     plt.figure(figsize=(10, 6))
-    ece_labels = np.unique(mask[mask > 0])
-    for label in ece_labels:
-        plt.plot(time_points, curve[label],
-                 label=f'Label {label}')
+
+    if selected_labels is not None:
+        labels = selected_labels
+        non_zero_curve = np.zeros((len(labels), curve.shape[1]))
+
+    else:
+        labels = np.unique(mask[mask > 0])
+        non_zero_curve = np.zeros((labels.shape[0], curve.shape[1]))
+    for i, label in enumerate(labels):
+        if np.sum(curve[int(label)]) > 0:
+            plt.plot(time_points, curve[int(label)],
+                     label=f'Label {int(label)}')
+            non_zero_curve[i] = curve[int(label)]
 
     plt.xlabel('Time Points')
     plt.ylabel('Mean Intensity')
@@ -25,31 +34,31 @@ def plot_curves(curve, mask, time_points,
     plt.grid(True)
 
     if filename:
-        plt.savefig(filename)  # Save the plot as a PNG file
+        plt.savefig(f'{filename}.png')  # Save the plot as a PNG file
 
     else:
         plt.show()
     plt.close('all')
 
     if mean_plot:
-        fig = plt.figure(figsize=(10, 6))
-        mean = np.mean(curve, axis=0)
-        std = np.std(curve, axis=0)
+        plt.figure(figsize=(10, 6))
+        mean = np.mean(non_zero_curve, axis=0)
+        std = np.std(non_zero_curve, axis=0)
 
         plt.plot(mean, label="Mean Curve", color="blue")
         plt.fill_between(range(len(mean)), mean - std, mean + std, color="blue",
                          alpha=0.2)
 
-        plt.axvline(x=270, color='red')
+
         plt.xlabel("Time Points")
         plt.ylabel("")
         plt.title(f"Mean_{title}")
         plt.grid(True)
         if filename is not None:
-            plt.savefig(f"mean_{filename}.png")
+            plt.savefig(f"{filename}_mean.png")
         else:
             plt.show()
-        plt.close(fig)
+        plt.close('all')
 
 
 def save_curves_to_csv(curves, time_points, filename=None):
@@ -94,7 +103,6 @@ def save_curves_and_interp_to_csv(patient, curves,
 
 
 def define_superspels_curve_reg(patient: Patient,
-                                images_corrected,
                                 mask):
     mean_intensity_curves = np.zeros(
         (int(mask.max()) + 1,
@@ -108,8 +116,8 @@ def define_superspels_curve_reg(patient: Patient,
         lbl_in_bbox = rp.image
 
         for t in patient.time_points:
-            img = images_corrected[patient.time_points.index(t)]
-            img_in_bbox = img[slice_bbox]
+            img = patient.get_image(t).data
+            img_in_bbox = img[slice_bbox] - patient.background_otsu(t)
             mean_intensity_curves[rp.label, patient.time_points.index(t)] = \
                 img_in_bbox[lbl_in_bbox > 0].mean()
     return mean_intensity_curves
@@ -137,21 +145,19 @@ def define_superspels_curve_orig(patient: Patient,
     return mean_intensity_curves
 
 
-def define_mean_intensity_curves(patient: Patient, mask,
-                                 images_corrected, domain):
+def define_mean_intensity_curves(patient: Patient, mask, domain):
     mean_intensity_curves = None
 
     if domain == 'REG':
         mean_intensity_curves = define_superspels_curve_reg(
             patient=patient,
-            images_corrected=images_corrected,
             mask=mask)
 
-    if domain == 'ORIG':
-        mean_intensity_curves = define_superspels_curve_orig(
-            patient=patient,
-            images_corrected=images_corrected,
-            mask=mask)
+    # if domain == 'ORIG':
+    #     mean_intensity_curves = define_superspels_curve_orig(
+    #         patient=patient,
+    #         images_corrected=images_corrected,
+    #         mask=mask)
 
     return mean_intensity_curves
 

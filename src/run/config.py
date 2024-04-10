@@ -217,7 +217,7 @@ def define_config_sicle(ref_t, n_init, n_final, p_seeds_init, p_seeds_final,
 
 
 ## module: superpels
-def config_superspels(ref_t, domain='REG'):
+def define_config_superspels(ref_t, domain='REG'):
     """Define configuration for Superspel method.
 
     Args:

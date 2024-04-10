@@ -1,5 +1,8 @@
 import os
 from pathlib import Path
+
+import numpy as np
+
 from src.mesoECE.data_structure import Patient, MRImage
 from src.mesoECE.methods import AbstractMethod
 from src.mesoECE.methods.utils import correct_images_background
@@ -7,6 +10,7 @@ from src.mesoECE.methods.superspels.utils import (define_superspels_mask,
                                                   define_mean_intensity_curves,
                                                   save_curves_and_interp_to_csv,
                                                   plot_curves)
+import nibabel as nib
 
 
 class Superspel(AbstractMethod):
@@ -15,7 +19,7 @@ class Superspel(AbstractMethod):
         self.path_superspels = path
         self.ref_t = ref_t
         self.domain = domain
-        self.thread_safe = True
+        self.thread_safe = False
 
     def apply(self, patient: Patient, **kwargs):
         try:
@@ -29,38 +33,51 @@ class Superspel(AbstractMethod):
             os.makedirs(path_plot, exist_ok=True)
 
             # Superspels mask (4D array) and nifti_args
-            patient.ss_mask, patient.nifti_args = define_superspels_mask(
-                patient=patient,
-                domain=self.domain,
-                ref_t=self.ref_t)
+            # patient.ss_mask, patient.nifti_args = define_superspels_mask(
+            #     patient=patient,
+            #     domain=self.domain,
+            #     ref_t=self.ref_t)
+
+            patient.nifti_args = patient.get_image(self.ref_t).nifti_props
+            patient.ss_mask = patient.get_image(self.ref_t).masks[
+                "supervoxels"].data.astype(np.int32)
 
             # Correct images background
-            images_corrected = correct_images_background(patient=patient)
+            # images_corrected = correct_images_background(patient=patient)
+            #
+            # for t in patient.time_points:
+            #     # Save corrected images
+            #     nifti_args = patient.get_image(t).nifti_props
+            #     nib.save(nib.Nifti1Image(images_corrected[t].data,
+            #                              **nifti_args),
+            #              str(self.path_superspels / patient.get_image(
+            #                  t).filename))
 
             # Define mean intensity curves for all superspels
-            patient.curves['mean_intensity'] = define_mean_intensity_curves(
+            mean_intensity = define_mean_intensity_curves(
                 patient=patient,
-                images_corrected=images_corrected,
-                mask=patient.ss_mask,
+                mask=patient.get_image(self.ref_t).masks[
+                    "supervoxels"].data.astype(np.int32),
                 domain=self.domain)
 
             # Save mean intensity curves to csv and interpolate of it
             save_curves_and_interp_to_csv(
                 patient=patient,
-                curves=patient.curves['mean_intensity'],
+                curves=mean_intensity,
                 path=path_ss_df,
                 curve_name='mean_intensity_curves')
 
             # Plot mean intensity curves
-            plot_curves(curve=patient.curves['mean_intensity'],
+            plot_curves(curve=mean_intensity,
                         time_points=patient.time_points,
                         mask=patient.get_image(self.ref_t).masks[
                             'supervoxels'].data,
-                        filename=str(path_plot / f'{patient.id}.png'),
+                        filename=str(path_plot / f'{patient.id}'),
                         mean_plot=True,
                         title='All Curves')
 
-        except:
+        except Exception as e:
+            print(e)
             print(f'Error with {patient.id}')
         new_patient = Patient(path=patient.path, path_masks=patient.path_masks,
                               id=patient.id, diagnosis=patient.diagnosis,
