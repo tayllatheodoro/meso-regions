@@ -218,7 +218,6 @@ class Experiment:
 
         roc_display = metrics.RocCurveDisplay.from_predictions(y, y_pred)
         roc_display.plot()
-        plt.figure(figsize=(10, 6))
         plt.savefig(self.path_prev_exp / 'roc_curve.png')
         plt.show()
         plt.close('all')
@@ -232,7 +231,7 @@ class Experiment:
         cmd.plot()
         cmd.figure_.savefig(
             str(self.path_prev_exp / 'confusion_matrix.png'))
-        plt.figure(figsize=(10, 6))
+
         plt.show()
         plt.close('all')
         df_metrics = pd.DataFrame.from_dict(metrics_exp,

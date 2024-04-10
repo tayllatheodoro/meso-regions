@@ -81,7 +81,6 @@ class ECE(AbstractMethod):
 
                 # Define mean intensity curves for superspels with ece pattern
                 ece_curves, benign_curves = define_ece_curves(
-                    len_time_points=len(patient.time_points),
                     mean_intensity_curves=mean_intensity,
                     ece_labels=ece_labels)
 

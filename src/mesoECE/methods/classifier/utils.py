@@ -1,4 +1,5 @@
 import numpy as np
+import skimage
 
 
 def superspels_labels_with_ece(index_270, mean_intensity_curve):
@@ -23,7 +24,7 @@ def superspels_labels_with_ece(index_270, mean_intensity_curve):
     return ece_labels
 
 
-def define_ece_curves(len_time_points, mean_intensity_curves, ece_labels):
+def define_ece_curves(mean_intensity_curves, ece_labels):
     ece_curves = np.zeros_like(mean_intensity_curves)
 
     for label in ece_labels:
@@ -46,8 +47,12 @@ def define_ece_mask(ece_labels, ss_mask):
     # benign_mask = ss_mask
     #
     ece_mask = np.zeros_like(ss_mask)
-    for l in ece_labels:
-        ece_mask[l] = ss_mask[l]
+    rps = skimage.measure.regionprops(ss_mask)
+    for rp in rps:
+        slice_bbox = tuple(
+            [slice(dim_start, dim_finish) for dim_start, dim_finish in
+             zip(rp.bbox[:3], rp.bbox[3:])])
+        ece_mask[slice_bbox] = rp.label
 
 
     #temp_mask[mask] = 0
