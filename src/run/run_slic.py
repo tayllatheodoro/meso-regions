@@ -31,14 +31,14 @@ threads = min(os.cpu_count(), len(ids_train))
 
 metrics_all = {}
 
-n_segments = np.arange(0, 1050, 50).tolist()
+n_segments = np.arange(0, 800, 50).tolist()
 p_seeds = [0.001, 0.005, 0.01, 0.05]
 for mask in tqdm(list_masks_dilated, desc="Masks"):
     path_masks = path_masks_dilated / mask / 'Dilate/00001'
     metrics_mask = {}
 
-    for n_segment in tqdm(range(0, 1050, 50), desc="N_Segments"):
-        for compactness in tqdm([0.1, 1, 10, 100], desc="Compactness"):
+    for n_segment in tqdm(range(0,800, 50), desc="N_Segments"):
+        for compactness in tqdm([0.1, 1, 10], desc="Compactness"):
             if n_segment == 0:
                 for p_seeds_final in tqdm(p_seeds, desc="P_final_Seeds"):
                     # Define configuration

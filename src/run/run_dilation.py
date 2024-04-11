@@ -22,7 +22,7 @@ threads = min(os.cpu_count(), len(ids))
 
 for dilation_radius in tqdm([2, 3, 4]):
     for p_center_distance in tqdm(
-            [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]):
+            [0, 0.1, 0.5, 0.9]):
         for otsu in [False, True]:
             # Define configuration
 
@@ -33,8 +33,12 @@ for dilation_radius in tqdm([2, 3, 4]):
                 otsu=otsu,
                 mask_to_dilate='fluid')
             config = [config_dilation]
-            experiment_name = (f"fluid_{dilation_radius}_"
-                               f"{p_center_distance}_{otsu}")
+            if otsu:
+                experiment_name = (f"fluid_d_{dilation_radius}_"
+                               f"p_{p_center_distance}_otsu")
+            else:
+                experiment_name = (f"fluid_d_{dilation_radius}_"
+                                   f"p_{p_center_distance}")
 
             experiment = Experiment(path_masks=path_masks, ids=ids,
                                     path_classes=path_classes,
