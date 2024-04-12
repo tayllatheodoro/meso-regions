@@ -44,14 +44,14 @@ class Experiment:
 
         self.instantiate_experiment()
 
-        # masks_list = os.listdir(path_masks)
+        masks_list = os.listdir(path_masks)
         # masks_dir = None
         # if len(masks_list) > 1:
         #     for mask in masks_list:
         #         masks_dir = {mask: path_masks / mask}
         # elif masks_list[0] == 'fluid':
         #     masks_dir = {'fluid': path_masks/'fluid'}
-        # else:
+        # # else:
         masks_dir = {'pleural_region': path_masks}
 
         self.image_dataset = MesoDataset(path_images=path_images,
@@ -140,7 +140,7 @@ class Experiment:
 
         self.result_classifier()
         self.results_seeds()
-        # self.classifier_metrics()
+        self.classifier_metrics()
 
     def result_analysis(self):
 
@@ -215,24 +215,24 @@ class Experiment:
         metrics_exp['FP_ID'] = ids_fp
         metrics_exp['FN_ID'] = ids_fn
 
-        roc_display = metrics.RocCurveDisplay.from_predictions(y, y_pred)
-        roc_display.plot()
-        plt.savefig(self.path_prev_exp / 'roc_curve.png')
-        plt.show()
-        plt.close('all')
+        # roc_display = metrics.RocCurveDisplay.from_predictions(y, y_pred)
+        # roc_display.plot()
+        # plt.savefig(self.path_prev_exp / 'roc_curve.png')
+        # plt.show()
+        # plt.close('all')
 
         # save confusion matrix with sklean
 
-        cm = metrics.confusion_matrix(y, y_pred, normalize='all')
-        cmd = metrics.ConfusionMatrixDisplay(cm,
-                                             display_labels=['NON-MALIGNANT',
-                                                             'MALIGNANT'])
-        cmd.plot()
-        cmd.figure_.savefig(
-            str(self.path_prev_exp / 'confusion_matrix.png'))
-
-        plt.show()
-        plt.close('all')
+        # cm = metrics.confusion_matrix(y, y_pred, normalize='all')
+        # cmd = metrics.ConfusionMatrixDisplay(cm,
+        #                                      display_labels=['NON-MALIGNANT',
+        #                                                      'MALIGNANT'])
+        # cmd.plot()
+        # cmd.figure_.savefig(
+        #     str(self.path_prev_exp / 'confusion_matrix.png'))
+        #
+        # plt.show()
+        # plt.close('all')
         df_metrics = pd.DataFrame.from_dict(metrics_exp,
                                             orient='index',
                                             columns=['Results'])

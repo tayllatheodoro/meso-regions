@@ -35,7 +35,7 @@ for dilation_radius in tqdm([2, 3, 4]):
             config = [config_dilation]
             if otsu:
                 experiment_name = (f"fluid_d_{dilation_radius}_"
-                               f"p_{p_center_distance}_otsu")
+                                   f"p_{p_center_distance}_otsu")
             else:
                 experiment_name = (f"fluid_d_{dilation_radius}_"
                                    f"p_{p_center_distance}")
@@ -48,4 +48,3 @@ for dilation_radius in tqdm([2, 3, 4]):
                                     config=config,
                                     threads=threads)
             experiment.execute_pipeline()
-
