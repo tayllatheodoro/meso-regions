@@ -35,7 +35,7 @@ for mask in tqdm(list_masks_dilated, desc="Masks"):
     path_masks = path_masks_dilated / mask / 'Dilate/'
     metrics_mask = {}
 
-    for n_final in tqdm(range(0, 1050, 50), desc="N_Segments"):
+    for n_final in tqdm(range(0, 800, 50), desc="N_Segments"):
 
             if n_final == 0:
                 for p_seeds_final in tqdm(p_seeds, desc="P_final_Seeds"):
