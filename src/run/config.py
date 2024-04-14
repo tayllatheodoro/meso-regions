@@ -255,7 +255,7 @@ def define_config_ece(ref_t, domain='REG'):
 
 ## module : supervoxel_with_ece
 
-def define_config_full_ece(ref_t, domain):
+def define_config_full_ece(ref_t, filter_size, with_mask):
     """Define configuration for FullECE method.
 
     Args:
@@ -267,7 +267,8 @@ def define_config_full_ece(ref_t, domain):
     config_full_ece = {
         "module": "supervoxel_with_ece",
         "method": "FullECE",
-        "args": {"ref_t": ref_t, "domain": domain}
+        "args": {"ref_t": ref_t, "filter_size": 5,
+                 "with_mask": True}
     }
     return config_full_ece
 

@@ -6,7 +6,6 @@ import skimage.measure
 from scipy.ndimage import uniform_filter
 from pathlib import Path
 
-from src.mesoECE.data_structure import MRImage
 from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
 from src.mesoECE.methods.superspels.utils import (plot_curves,
@@ -20,7 +19,7 @@ from src.mesoECE.methods.utils import (define_masks_volume,
 
 class FullECE(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, filter_size: int = 5,
-                 with_mask: bool = True, domain: str = 'REG'):
+                 with_mask: bool = True):
         super().__init__()
         self.domain = None
         self.thread_safe = True
