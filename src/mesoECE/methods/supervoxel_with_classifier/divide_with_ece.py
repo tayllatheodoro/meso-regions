@@ -37,6 +37,7 @@ class DivideWithECE(AbstractMethod):
     # TODO: Implement with sicle, disf
     def apply(self, patient: Patient, **kwargs):
         try:
+            print(f"Processing patient {patient.id}...")
             path_m_images = self.path_sv / 'ece_images'
             path_b_images = self.path_sv / 'benign_images'
             path_plot = self.path_sv / 'plots'
@@ -157,8 +158,10 @@ class DivideWithECE(AbstractMethod):
                                    n_segments):
 
         if define_masks_volume(mask) > self.p_size:
+
             print("\r", end='')
             print("Dividing...", end="", flush=True)
+            print(define_masks_volume(mask))
 
             supervoxel_mask = slic(image=image,
                                    mask=mask,

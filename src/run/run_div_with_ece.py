@@ -20,7 +20,7 @@ path_masks_dilated = Path("/app/data/meso/meso_data/Dilation")
 path_splits = Path("/app/data/meso/meso_data/data/splits")
 
 list_masks_dilated = os.listdir(path_masks_dilated)
-# ids_train =[11, 12, 90]
+
 ids_train = list(sorted(
    (pd.read_csv(path_splits / "training_set_classes_4.csv")["ID"]).to_list()))
 # ids_test = list(sorted(
@@ -38,7 +38,7 @@ for mask in tqdm(list_masks_dilated, desc="Masks"):
     metrics_mask = {}
     for n_segment in tqdm(range(5, 100, 5), desc="N_Segments"):
         for compactness in tqdm([0.1, 1, 10], desc="Compactness"):
-            for p_size in tqdm([1000, 5000, 10000], desc="P_size"):
+            for p_size in tqdm([2000, 4000, 10000], desc="P_size"):
                 for p_o_s in predict_only_small:
 
                         # Define configuration
