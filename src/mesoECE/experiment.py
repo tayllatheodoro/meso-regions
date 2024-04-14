@@ -139,7 +139,7 @@ class Experiment:
                 self.results[method.__class__.__name__] = method.result()
 
         self.result_classifier()
-        self.results_seeds()
+        # self.results_seeds()
         self.classifier_metrics()
 
     def result_analysis(self):
@@ -152,8 +152,8 @@ class Experiment:
         self.classifier = ""
         if 'ECE' in self.results:
             self.classifier = "ECE"
-        elif 'DividingECE' in self.results:
-            self.classifier = "DividingECE"
+        elif 'DivideWithECE' in self.results:
+            self.classifier = "DivideWithECE"
         elif 'FullECE' in self.results:
             self.classifier = "FullECE"
 

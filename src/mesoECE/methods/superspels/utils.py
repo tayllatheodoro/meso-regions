@@ -149,8 +149,7 @@ def define_superspels_curve_orig(patient: Patient,
 def define_mean_intensity_curves(patient: Patient, mask, domain):
     mean_intensity_curves = None
 
-    if domain == 'REG':
-        mean_intensity_curves = define_superspels_curve_reg(
+    mean_intensity_curves = define_superspels_curve_reg(
             patient=patient,
             mask=mask)
 

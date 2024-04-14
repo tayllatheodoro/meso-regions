@@ -277,9 +277,8 @@ def define_config_div_with_ece(ref_t: int, n_segments: int,
                                compactness: float, p_size: int =1000,
                                method: str = 'SLIC',
                                domain: str = None,
-                               predict_only_small: bool = False,
-                               decrease_n_segments: bool = False):
-    """Define configuration for DividingECE method.
+                               predict_only_small: bool = False):
+    """Define configuration for DivideWithECE method.
 
     Args:
         -ref_t                  Reference time point.
@@ -297,11 +296,10 @@ def define_config_div_with_ece(ref_t: int, n_segments: int,
     """
     config_div_with_ece = {
         "module": "supervoxel_with_ece",
-        "method": "DividingECE",
+        "method": "DivideWithECE",
         "args": {"ref_t": ref_t, "n_segments": n_segments,
                  "compactness": compactness, "p_size": p_size,
                  "method": method, "domain": domain,
-                 "predict_only_small": predict_only_small,
-                 "decrease_n_segments": decrease_n_segments}
+                 "predict_only_small": predict_only_small}
     }
     return config_div_with_ece

@@ -9,57 +9,54 @@ from src.mesoECE.experiment import Experiment
 from src.run.config import define_config_slic, define_config_ece, \
     define_config_superspels, define_config_div_with_ece
 
-path_classes = Path("/data_lids/home/taylla/PycharmProjects/meso/data"
+path_classes = Path("/app/data/meso/meso_data/data"
                     "/classes_subclasses_nodular.csv")
-path_images = Path("/data_lids/home/taylla/PycharmProjects/meso/data/resample"
-                   "/images_orig_reg")
-path_output = Path("/data_lids/home/taylla/PycharmProjects/meso/output"
+path_images = Path("/app/data/meso/meso_data/data/resample/images_orig_reg")
+path_output = Path("//app/data/meso/meso_data/output"
                    "/HyperparameterTuning/DIV_ECE")
 
-path_masks_dilated = Path("/data_lids/home/taylla/PycharmProjects/meso/output/"
-                          "/HyperparameterTuning/Dilation")
+path_masks_dilated = Path("/app/data/meso/meso_data/Dilation")
 
-path_splits = Path("/data_lids/home/taylla/PycharmProjects/meso/data/splits")
+path_splits = Path("/app/data/meso/meso_data/data/splits")
 
 list_masks_dilated = os.listdir(path_masks_dilated)
-
+# ids_train =[11, 12, 90]
 ids_train = list(sorted(
-    (pd.read_csv(path_splits / "training_set_classes_4.csv")["ID"]).to_list()))
+   (pd.read_csv(path_splits / "training_set_classes_4.csv")["ID"]).to_list()))
 # ids_test = list(sorted(
 #     (pd.read_csv(path_splits / "test_set_classes_4.csv")["ID"]).to_list()))
 threads = min(os.cpu_count(), len(ids_train))
 
 metrics_all = {}
 
-n_segments = np.arange(0, 800, 50).tolist()
+
 p_seeds = [0.001, 0.01]
 predict_only_small = [True, False]
-decrease_n_segments = [True, False]
+
 for mask in tqdm(list_masks_dilated, desc="Masks"):
     path_masks = path_masks_dilated / mask / 'Dilate'
     metrics_mask = {}
     for n_segment in tqdm(range(5, 100, 5), desc="N_Segments"):
         for compactness in tqdm([0.1, 1, 10], desc="Compactness"):
-            for p_size in tqdm([100, 1000, 10000], desc="P_size"):
+            for p_size in tqdm([1000, 5000, 10000], desc="P_size"):
                 for p_o_s in predict_only_small:
-                    for d_n_s in decrease_n_segments:
+
                         # Define configuration
 
                         config_slic = define_config_div_with_ece(
                             ref_t=270,
                             n_segments=n_segment,
                             compactness=compactness,
-                            p_size=1000,
-                            predict_only_small=p_o_s,
-                            decrease_n_segments=d_n_s)
+                            p_size=p_size,
+                            predict_only_small=p_o_s)
                         # config_superspels = define_config_superspels(ref_t=270,
                         #                                              domain='REG')
-                        config_ece = define_config_ece(ref_t=270,
-                                                       domain='REG')
-                        config = [config_slic, config_ece]
+                        # config_ece = define_config_ece(ref_t=270,
+                        #                                domain='REG')
+                        config = [config_slic]
 
                         experiment_name = (f"{mask}/{n_segment}_"
-                                           f"{compactness}_{p_size}_{p_o_s}_{d_n_s}")
+                                           f"{compactness}_{p_size}_{p_o_s}")
 
                         experiment = Experiment(
                             path_masks=path_masks,
@@ -75,9 +72,9 @@ for mask in tqdm(list_masks_dilated, desc="Masks"):
                         print(metrics_exp)
 
                         metrics_all[
-                            f'{mask}_{n_segment}_{compactness}_{p_size}_{p_o_s}_{d_n_s}'] = metrics_exp
+                            f'{mask}_{n_segment}_{compactness}_{p_size}_{p_o_s}'] = metrics_exp
                         metrics_mask[
-                            f'{n_segment}_{compactness}_{p_size}_{p_o_s}_{d_n_s}'] = metrics_exp
+                            f'{n_segment}_{compactness}_{p_size}_{p_o_s}'] = metrics_exp
 
     df_metrics_mask = pd.DataFrame(metrics_mask)
     df_metrics_mask.to_csv(path_output / f"metrics_{mask}_exp.csv")
@@ -86,7 +83,7 @@ df_metrics = pd.DataFrame(metrics_all)
 df_metrics.to_csv(path_output / f"metrics_all_exp.csv")
 
 
-def test():
+def eiwe():
     ids_train = [11, 12, 90]
 
     # ids_train = list(sorted(
