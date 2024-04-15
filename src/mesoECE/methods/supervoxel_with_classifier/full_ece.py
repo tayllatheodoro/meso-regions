@@ -48,14 +48,12 @@ class FullECE(AbstractMethod):
 
             nifti_args = patient.get_image(self.ref_t).nifti_props
 
-            # Correct images background
-            images_corrected = correct_images_background(patient=patient)
+
 
             # Apply mean filter to simulate mean of superspels
             images = self.define_images_filtered(
                 patient=patient,
-                pleural_mask=pleural_mask,
-                images_corrected=images_corrected)
+                pleural_mask=pleural_mask)
 
             # Define mask with superspels with ece pattern
             # and benign masks
@@ -78,26 +76,26 @@ class FullECE(AbstractMethod):
                      patient.subclass_diagnosis, patient.nodular,
                      ece_vol, ece_vol])
 
-                ece_curves = self.define_ece_curves(patient,
-                                                    ece_labeled_mask)
-
-                save_curves_and_interp_to_csv(patient=patient,
-                                              curves=ece_curves,
-                                              path=path_df,
-                                              curve_name='ece')
-                plot_curves(curve=ece_curves,
-                            mask=ece_labeled_mask,
-                            time_points=patient.time_points,
-                            filename=str(path_plot /
-                                         f'ece_{patient.id}.png'),
-                            mean_plot=True)
-
-                save_superspels_masks(mask=ece_labeled_mask,
-                                      nifti_args=nifti_args,
-                                      patient=patient,
-                                      domain=self.domain,
-                                      ref_t=self.ref_t,
-                                      path=path_m_images)
+                # ece_curves = self.define_ece_curves(patient,
+                #                                     ece_labeled_mask)
+                #
+                # save_curves_and_interp_to_csv(patient=patient,
+                #                               curves=ece_curves,
+                #                               path=path_df,
+                #                               curve_name='ece')
+                # plot_curves(curve=ece_curves,
+                #             mask=ece_labeled_mask,
+                #             time_points=patient.time_points,
+                #             filename=str(path_plot /
+                #                          f'ece_{patient.id}.png'),
+                #             mean_plot=True)
+                #
+                # save_superspels_masks(mask=ece_labeled_mask,
+                #                       nifti_args=nifti_args,
+                #                       patient=patient,
+                #                       domain=self.domain,
+                #                       ref_t=self.ref_t,
+                #                       path=path_m_images)
 
             else:
                 self.predicted_diagnosis.append(
@@ -105,28 +103,27 @@ class FullECE(AbstractMethod):
                      patient.subclass_diagnosis, patient.nodular,
                      ece_vol, ece_vol])
 
-            benign_curves = define_mean_intensity_curves(
-                patient=patient,
-                mask=benign_labeled_mask,
-                images_corrected=images_corrected,
-                domain=self.domain)
-            save_curves_and_interp_to_csv(patient=patient,
-                                          curves=benign_curves,
-                                          path=path_df,
-                                          curve_name='benign')
-            plot_curves(curve=benign_curves,
-                        mask=benign_labeled_mask,
-                        time_points=patient.time_points,
-                        filename=str(path_plot /
-                                     f'benign_{patient.id}.png'),
-                        mean_plot=True)
-
-            save_superspels_masks(mask=benign_labeled_mask,
-                                  nifti_args=nifti_args,
-                                  patient=patient,
-                                  domain=self.domain,
-                                  ref_t=self.ref_t,
-                                  path=path_b_images)
+            # benign_curves = define_mean_intensity_curves(
+            #     patient=patient,
+            #     mask=benign_labeled_mask,
+            #     domain=self.domain)
+            # save_curves_and_interp_to_csv(patient=patient,
+            #                               curves=benign_curves,
+            #                               path=path_df,
+            #                               curve_name='benign')
+            # plot_curves(curve=benign_curves,
+            #             mask=benign_labeled_mask,
+            #             time_points=patient.time_points,
+            #             filename=str(path_plot /
+            #                          f'benign_{patient.id}.png'),
+            #             mean_plot=True)
+            #
+            # save_superspels_masks(mask=benign_labeled_mask,
+            #                       nifti_args=nifti_args,
+            #                       patient=patient,
+            #                       domain=self.domain,
+            #                       ref_t=self.ref_t,
+            #                       path=path_b_images)
 
             patient.path_masks['ece'] = self.path_ece
         except:
@@ -139,15 +136,17 @@ class FullECE(AbstractMethod):
                               nodular=patient.nodular)
         return new_patient
 
-    def results(self):
+    def result(self):
         return self.predicted_diagnosis
 
-    def define_images_filtered(self, patient, pleural_mask, images_corrected):
+    def define_images_filtered(self, patient, pleural_mask):
         images = []
         for t in patient.time_points:
             # image mean filter using skitmage
+            img = patient.get_image(t).data
+            img_corrected = img - patient.background_otsu(t)
             img_filtered = uniform_filter(
-                input=images_corrected[patient.time_points.index(t)],
+                input=img_corrected,
                 size=self.filter_size)
             if self.with_mask:
                 img_filtered[pleural_mask == 0] = 0
@@ -155,7 +154,7 @@ class FullECE(AbstractMethod):
         return images
 
     def define_ece_mask(self, patient, images):
-        ece_mask = np.ones_like(patient.get_image(self.ref_t).data.shape)
+        ece_mask = np.ones_like(patient.get_image(self.ref_t).data)
         peak_index = patient.time_points.index(270)
         for i, t in enumerate(patient.time_points):
             if i < peak_index:
@@ -179,8 +178,8 @@ class FullECE(AbstractMethod):
             lbl_in_bbox = rp.image
 
             for t in patient.time_points:
-                img = correct_image_background(patient, t)
-                img_in_bbox = img[slice_bbox]
+                img = patient.get_image(t).data
+                img_in_bbox = img[slice_bbox] - patient.background_otsu(t)
                 ece_mean_curve[rp.label, patient.time_points.index(t)] = \
                     img_in_bbox[lbl_in_bbox > 0]
         return ece_mean_curve

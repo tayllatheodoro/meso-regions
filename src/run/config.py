@@ -267,8 +267,8 @@ def define_config_full_ece(ref_t, filter_size, with_mask):
     config_full_ece = {
         "module": "supervoxel_with_ece",
         "method": "FullECE",
-        "args": {"ref_t": ref_t, "filter_size": 5,
-                 "with_mask": True}
+        "args": {"ref_t": ref_t, "filter_size": filter_size,
+                 "with_mask": with_mask}
     }
     return config_full_ece
 

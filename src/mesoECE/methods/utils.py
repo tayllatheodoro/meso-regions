@@ -4,8 +4,6 @@ from src.mesoECE.data_structure import Patient
 
 def define_masks_volume(mask):
     mask_volume = np.count_nonzero(mask)
-
-
     return mask_volume
 
 
