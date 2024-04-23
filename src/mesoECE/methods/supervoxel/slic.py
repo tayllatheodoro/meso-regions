@@ -6,6 +6,7 @@ from pathlib import Path
 from src.mesoECE.data_structure import Patient
 from src.mesoECE.methods import AbstractMethod
 
+from filelock import Timeout, FileLock
 
 class SLIC(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, n_segments: int,
@@ -40,6 +41,7 @@ class SLIC(AbstractMethod):
 
             # Apply SLIC in Current Patient in Volume from reference image
 
+
             supervoxels_mask = slic(image, mask=mask, channel_axis=None,
                                     compactness=self.compactness,
                                     n_segments=n_seeds_final,
@@ -53,8 +55,9 @@ class SLIC(AbstractMethod):
 
             # Update patient path masks
             patient.path_masks['supervoxels'] = self.path_supervoxels
-        except:
+        except Exception as e:
             print("Error in id: ", patient.id)
+            print(e)
         new_patient = Patient(path=patient.path, path_masks=patient.path_masks,
                               id=patient.id,
                               diagnosis=patient.diagnosis,

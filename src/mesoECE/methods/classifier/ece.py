@@ -44,7 +44,7 @@ class ECE(AbstractMethod):
             os.makedirs(path_m_images, exist_ok=True)
             os.makedirs(path_b_images, exist_ok=True)
 
-            mean_intensity = define_mean_intensity_curves(
+            mean_intensity,_ = define_mean_intensity_curves(
                 patient=patient,
                 mask=patient.get_image(self.ref_t).masks[
                     "supervoxels"].data.astype(np.int32),
@@ -80,38 +80,29 @@ class ECE(AbstractMethod):
                      ece_labels.__len__(), ece_vol])
 
                 # Define mean intensity curves for superspels with ece pattern
-                # ece_curves, benign_curves = define_ece_curves(
-                #     mean_intensity_curves=mean_intensity,
-                #     ece_labels=ece_labels)
+                ece_curves, benign_curves = define_ece_curves(
+                    mean_intensity_curves=mean_intensity,
+                    ece_labels=ece_labels)
 
                 # Save mean intensity curves to csv and interpolate of it
-                # save_curves_and_interp_to_csv(patient=patient,
-                #                               curves=ece_curves,
-                #                               path=path_df,
-                #                               curve_name='ece')
+                save_curves_and_interp_to_csv(patient=patient,
+                                              curves=ece_curves,
+                                              path=path_df,
+                                              curve_name='ece')
                 # #
-                # save_curves_and_interp_to_csv(patient=patient,
-                #                               curves=benign_curves,
-                #                               path=path_df,
-                #                               curve_name='benign')
-                # Plot ece curves vs time
-                ece_mask_plot = None
-                benign_mask_plot = None
-                # if self.domain == 'REG':
-                #     ece_mask_plot = ece_mask
-                #     benign_mask_plot = benign_mask
-                #
-                # elif self.domain == 'ORIG':
-                #     ece_mask_plot = ece_mask[index_270]
-                #     benign_mask_plot = benign_mask[index_270]
+                save_curves_and_interp_to_csv(patient=patient,
+                                              curves=benign_curves,
+                                              path=path_df,
+                                              curve_name='benign')
+                #Plot ece curves vs time
 
                 # # Plot mean intensity curves
-                # plot_curves(curve=ece_curves,
-                #             time_points=patient.time_points,
-                #             mask=ece_mask,
-                #             filename=str(path_plot / f'ece_{patient.id}'),
-                #             mean_plot=True,
-                #             selected_labels=ece_labels)
+                plot_curves(curve=ece_curves,
+                            time_points=patient.time_points,
+                            mask=ece_mask,
+                            filename=str(path_plot / f'ece_{patient.id}'),
+                            mean_plot=True,
+                            selected_labels=ece_labels)
 
                 #Save ece mask
 

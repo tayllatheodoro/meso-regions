@@ -49,14 +49,12 @@ def define_ece_mask(ece_labels, ss_mask):
     ece_mask = np.zeros_like(ss_mask)
     rps = skimage.measure.regionprops(ss_mask)
     for rp in rps:
-        slice_bbox = tuple(
-            [slice(dim_start, dim_finish) for dim_start, dim_finish in
-             zip(rp.bbox[:3], rp.bbox[3:])])
-        ece_mask[slice_bbox] = rp.label
+        if (rp.label in ece_labels) and np.sum(
+                ss_mask[ss_mask == rp.label]) > 0:
+            ece_mask[ss_mask == rp.label] = rp.label
 
-
-    #temp_mask[mask] = 0
-    #benign_mask = temp_mask
+    # temp_mask[mask] = 0
+    # benign_mask = temp_mask
 
     # for i in range(len(ss_mask)):
     #     temp_mask = np.copy(ss_mask[i])

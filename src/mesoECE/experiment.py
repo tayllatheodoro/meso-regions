@@ -139,7 +139,7 @@ class Experiment:
                 self.results[method.__class__.__name__] = method.result()
 
         self.result_classifier()
-        # self.results_seeds()
+        self.results_seeds()
         self.classifier_metrics()
 
     def result_analysis(self):

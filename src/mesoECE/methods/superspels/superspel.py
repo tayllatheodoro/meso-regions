@@ -54,27 +54,43 @@ class Superspel(AbstractMethod):
             #                  t).filename))
 
             # Define mean intensity curves for all superspels
-            # mean_intensity = define_mean_intensity_curves(
-            #     patient=patient,
-            #     mask=patient.get_image(self.ref_t).masks[
-            #         "supervoxels"].data.astype(np.int32),
-            #     domain=self.domain)
+            mean_intensity, std_intensity = define_mean_intensity_curves(
+                patient=patient,
+                mask=patient.get_image(self.ref_t).masks[
+                    "supervoxels"].data.astype(np.int32),
+                domain=self.domain)
 
             # # Save mean intensity curves to csv and interpolate of it
-            # save_curves_and_interp_to_csv(
-            #     patient=patient,
-            #     curves=mean_intensity,
-            #     path=path_ss_df,
-            #     curve_name='mean_intensity_curves')
+            save_curves_and_interp_to_csv(
+                patient=patient,
+                curves=mean_intensity,
+                path=path_ss_df,
+                curve_name='mean_intensity_curves')
 
+            # # Save mean intensity curves to csv and interpolate of it
+            save_curves_and_interp_to_csv(
+                patient=patient,
+                curves=std_intensity,
+                path=path_ss_df,
+                curve_name='std_intensity_curves')
+            os.makedirs(path_plot / 'mean', exist_ok=True)
+            os.makedirs(path_plot / 'std', exist_ok=True)
             # # Plot mean intensity curves
-            # plot_curves(curve=mean_intensity,
-            #             time_points=patient.time_points,
-            #             mask=patient.get_image(self.ref_t).masks[
-            #                 'supervoxels'].data,
-            #             filename=str(path_plot / f'{patient.id}'),
-            #             mean_plot=True,
-            #             title='All Curves')
+            plot_curves(curve=mean_intensity,
+                        time_points=patient.time_points,
+                        mask=patient.get_image(self.ref_t).masks[
+                            'supervoxels'].data,
+                        filename=str(path_plot /'mean' /f'{patient.id}'),
+                        mean_plot=True,
+                        title='All Curves')
+
+            plot_curves(curve=std_intensity,
+                        time_points=patient.time_points,
+                        mask=patient.get_image(self.ref_t).masks[
+                            'supervoxels'].data,
+                        filename=str(path_plot /'std'/ f'{patient.id}'),
+                        mean_plot=True,
+                        title='All Curves')
 
         except Exception as e:
             print(e)

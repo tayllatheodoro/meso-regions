@@ -45,11 +45,10 @@ def plot_curves(curve, mask, time_points,
         mean = np.mean(non_zero_curve, axis=0)
         std = np.std(non_zero_curve, axis=0)
 
-        plt.plot(time_points,mean, label="Mean Curve", color="blue")
+        plt.plot(time_points, mean, label="Mean Curve", color="blue")
         plt.fill_between(time_points, mean - std, mean + std, color="blue",
                          alpha=0.2)
         plt.axvline(x=270, color='red')
-
 
         plt.xlabel("Time Points")
         plt.ylabel("")
@@ -108,6 +107,8 @@ def define_superspels_curve_reg(patient: Patient,
     mean_intensity_curves = np.zeros(
         (int(mask.max()) + 1,
          patient.time_points.__len__()))
+    std_intensity_curves = np.zeros_like(
+        mean_intensity_curves)
 
     rps = skimage.measure.regionprops(mask)
     for rp in rps:
@@ -121,7 +122,9 @@ def define_superspels_curve_reg(patient: Patient,
             img_in_bbox = img[slice_bbox] - patient.background_otsu(t)
             mean_intensity_curves[rp.label, patient.time_points.index(t)] = \
                 img_in_bbox[lbl_in_bbox > 0].mean()
-    return mean_intensity_curves
+            std_intensity_curves[rp.label, patient.time_points.index(t)] = \
+                img_in_bbox[lbl_in_bbox > 0].std()
+    return mean_intensity_curves, std_intensity_curves
 
 
 def define_superspels_curve_orig(patient: Patient,
@@ -149,9 +152,9 @@ def define_superspels_curve_orig(patient: Patient,
 def define_mean_intensity_curves(patient: Patient, mask, domain):
     mean_intensity_curves = None
 
-    mean_intensity_curves = define_superspels_curve_reg(
-            patient=patient,
-            mask=mask)
+    mean_intensity_curves, std_intensity_curves = define_superspels_curve_reg(
+        patient=patient,
+        mask=mask)
 
     # if domain == 'ORIG':
     #     mean_intensity_curves = define_superspels_curve_orig(
@@ -159,7 +162,7 @@ def define_mean_intensity_curves(patient: Patient, mask, domain):
     #         images_corrected=images_corrected,
     #         mask=mask)
 
-    return mean_intensity_curves
+    return mean_intensity_curves, std_intensity_curves
 
 
 def define_superspels_mask(patient: Patient, domain, ref_t):
