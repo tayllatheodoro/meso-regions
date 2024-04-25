@@ -69,16 +69,27 @@ def save_curves_to_csv(curves, time_points, filename=None):
 
 def interp_curve_missing_time_points(curves, time_points):
     n_curves = curves.shape[0]
-    ss_interp_curves = np.zeros((n_curves, 7))
 
     standard_time_points = [0, 40, 80, 180, 270, 540, 810]
-    for i in range(n_curves):
-        f_interp = interp1d(time_points, curves[i],
-                            fill_value=curves[i, -1],
+
+    new_curves = np.zeros((curves.shape[0], len(standard_time_points)))
+
+    # if not all time points are present, interpolate
+    for curve in range(curves.shape[0]):
+        f_interp = interp1d(time_points, curves[curve, :],
+                            fill_value=curves[curve][
+                                time_points.index(
+                                    time_points[-1])],
                             bounds_error=False)
-        ss_interp_curves[i] = np.asarray(
-            [f_interp(t) for t in standard_time_points[:1]])
-    return ss_interp_curves, standard_time_points
+
+        for j, time in enumerate(standard_time_points):
+
+            if time not in time_points:
+                new_curves[curve, j] = f_interp(time)
+            else:
+                new_curves[curve, j] = curves[
+                    curve, time_points.index(time)]
+    return new_curves, standard_time_points
 
 
 def save_curves_and_interp_to_csv(patient, curves,
