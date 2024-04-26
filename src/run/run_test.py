@@ -9,32 +9,56 @@ from src.run.config import define_config_slic, define_config_ece, \
 
 path_classes = Path("/data_lids/home/taylla/PycharmProjects/meso/data"
                     "/classes_subclasses_nodular.csv")
+
 path_images = Path("/data_lids/home/taylla/PycharmProjects/meso/data/resample"
                    "/images_orig_reg")
 path_masks_dilated = Path("/data_lids/home/taylla/PycharmProjects/meso/output/"
                           "/HyperparameterTuning/Dilation")
+
 path_output = Path("/data_lids/home/taylla/PycharmProjects/meso/output"
                    "/HyperparameterTuning/test")
 path_train_metrics = Path("/data_lids/home/taylla/PycharmProjects/meso/output"
-                          "/HyperparameterTuning/train_metrics")
+                          "/HyperparameterTuning/No_P_masks")
 path_splits = Path("/data_lids/home/taylla/PycharmProjects/meso/data/splits")
 ids_test = list(sorted(
     (pd.read_csv(path_splits / "test_set_classes_4.csv")["ID"]).to_list()))
 threads = min(os.cpu_count(), len(ids_test))
-methods = ['slic', 'disf', 'fullece']
-
+methods = os.listdir(path_train_metrics)
 
 for method in methods:
-    df = pd.read_csv(path_train_metrics / f"best_metrics_{method}.csv")
-    auc_column = df['AUC']
-    acc_column = df['ACC']
-    f1_column = df['F1']
+    df = pd.read_csv(
+        path_train_metrics / method / 'train' / f"metrics_all_exp.csv", index_col=0)
+
+    auc_row = df.loc['AUC']
+    best_auc_column = auc_row.idxmax()
+    best_auc_value = auc_row[best_auc_column]
+
+    acc_row = df.loc['acc']
+    best_acc_column = acc_row.idxmax()
+    best_acc_value = acc_row[best_acc_column]
+
+    f1_row = df.loc['f1_score']
+    best_f1_column = f1_row.idxmax()
+    best_f1_value = f1_row[best_f1_column]
+    best_metrics = {
+        'AUC': {'Value': best_auc_value, 'Parameters': best_auc_column},
+        'ACC': {'Value': best_acc_value, 'Parameters': best_acc_column},
+        'F1': {'Value': best_f1_value, 'Parameters': best_f1_column}}
+
+    df_best_metrics = pd.DataFrame(best_metrics)
+    print(df_best_metrics)
+    df_best_metrics.to_csv(
+        path_train_metrics / method / 'train' / f"best_metrics_{method}.csv")
+
+    auc_column = df_best_metrics['AUC']
+    acc_column = df_best_metrics['ACC']
+    f1_column = df_best_metrics['F1']
 
     auc_parameter = auc_column[1]
     acc_parameter = acc_column[1]
     f1_parameter = f1_column[1]
-    print(method)
-    print(df)
+
+
     # SLIC: f'{mask}_{n_segment}_{compactness}_{p_seeds_final}']
     # disf: f"{mask}_{n_final}_{p_seeds_final}")
     # fullece: {mask}_{f}
@@ -51,30 +75,30 @@ for method in methods:
         if p.split('_')[5] == 'otsu':
             otsu = 'True'
             mask = f'fluid_d_{dilatation_radius}_p_{p_center}_otsu'
-            if method == 'slic':
+            if method == 'SLIC':
 
                 n_segment = p.split('_')[6]
                 compactness = p.split('_')[7]
                 p_seeds_final = p.split('_')[8]
-            elif method == 'disf':
+            elif method == 'DISF':
                 n_final = p.split('_')[6]
                 p_seeds_final = p.split('_')[7]
             elif method == 'fullece':
                 f = p.split('_')[6]
         else:
             mask = f'fluid_d_{dilatation_radius}_p_{p_center}'
-            if method == 'slic':
+            if method == 'SLIC':
                 n_segment = p.split('_')[5]
                 compactness = p.split('_')[6]
                 p_seeds_final = p.split('_')[7]
-            elif method == 'disf':
+            elif method == 'DISF':
                 n_final = p.split('_')[5]
                 p_seeds_final = p.split('_')[6]
             elif method == 'fullece':
                 f = p.split('_')[5]
 
         path_masks = path_masks_dilated / mask / 'Dilate'
-        if method == 'slic':
+        if method == 'SLIC':
             config_slic = define_config_slic(
                 ref_t=270,
                 n_segments=int(n_segment),
@@ -84,7 +108,7 @@ for method in methods:
                                                          domain='REG')
             config_ece = define_config_ece(ref_t=270, domain='REG')
             config = [config_slic, config_superspels, config_ece]
-        elif method == 'disf':
+        elif method == 'DISF':
             config_disf = define_config_disf(
                 ref_t=270,
                 n_init=int(n_final) * 10,
@@ -107,7 +131,7 @@ for method in methods:
             ids=ids_test,
             path_classes=path_classes,
             path_images=path_images,
-            path_experiments=path_output,
+            path_experiments=path_output/method,
             experiment_name=experiment_name,
             config=config,
             threads=threads)
