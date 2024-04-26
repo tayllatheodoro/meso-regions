@@ -87,7 +87,7 @@ class DivideWithECE(AbstractMethod):
                 plot_curves(curve=ece_curves,
                             time_points=patient.time_points,
                             mask=sv_m_mask,
-                            filename=str(self.path_sv / 'plots' / f'ece_{patient.id}.png'),
+                            filename=str(self.path_sv / 'plots' / f'ece_{patient.id}'),
                             mean_plot=True)
 
                 # Save supervoxels mask
@@ -128,7 +128,7 @@ class DivideWithECE(AbstractMethod):
             plot_curves(curve=benign_curves,
                         time_points=patient.time_points,
                         mask=sv_b_mask,
-                        filename=str(self.path_sv / 'plots' / f'benign_{patient.id}.png'),
+                        filename=str(self.path_sv / 'plots' / f'benign_{patient.id}'),
                         mean_plot=True,
                         title='Benign Curves')
 
@@ -149,17 +149,26 @@ class DivideWithECE(AbstractMethod):
 
     def segment_and_classify(self, patient, image, mask, n_segments, classify_immediately):
         stack = [(image, mask)]
+        iteration_count = 0  # Safeguard against infinite loops
+        max_iterations = 1000  # Set according to expected segmentation depth
+
         while stack:
+            if iteration_count > max_iterations:
+                print("Max iterations reached, breaking loop to avoid infinite recursion")
+                break
+
             img, msk = stack.pop()
-            if define_masks_volume(msk) <= self.p_size or classify_immediately:
-                # Direct classification and storage decision based on predict_ece outcome
+            current_volume = define_masks_volume(msk)
+           # print(f"Processing segment with volume: {current_volume}")
+
+            if current_volume <= self.p_size or classify_immediately:
                 diagnosis = self.predict_ece(patient, msk)
+                #print(f"Segment classified with diagnosis: {diagnosis}")
                 if diagnosis == 1:
                     patient.supervoxels_m_masks.append(msk)
                 else:
                     patient.supervoxels_b_masks.append(msk)
             else:
-                # Perform further segmentation
                 supervoxel_mask = slic(image=img, mask=msk, compactness=self.compactness,
                                        n_segments=n_segments, channel_axis=None, start_label=1,
                                        spacing=self.mri_spacing)
@@ -170,7 +179,11 @@ class DivideWithECE(AbstractMethod):
                         slice(dim_start, dim_finish) for dim_start, dim_finish in zip(rp.bbox[:3], rp.bbox[3:]))
                     lbl_in_bbox = rp.image
                     div_mask[slice_bbox] = lbl_in_bbox
-                    stack.append((img, div_mask))
+                    if np.any(div_mask != msk):  # Ensure new mask is different
+                        stack.append((img, div_mask))
+                    #print(f"New segment pushed with volume: {define_masks_volume(div_mask)}")
+
+            iteration_count += 1
 
     def predict_ece(self, patient, mask):
         curves = define_mean_intensity_curves(patient=patient, mask=mask, domain=self.domain)

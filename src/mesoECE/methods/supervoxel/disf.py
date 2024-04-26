@@ -52,7 +52,7 @@ class DISF(AbstractMethod):
 
                 # Apply DISF in Current Patient in Volume from reference image
                 # and save supervoxels mask
-                cmd = (f"/data_lids/home/taylla/ift/bin/iftDISF {path_img} {n_seeds_init}"
+                cmd = (f"/app/data/ift/bin/iftDISF {path_img} {n_seeds_init}"
                        f" {n_seeds_final} {path_out_mask} {path_mask}")
 
                 if os.system(cmd) == -1:

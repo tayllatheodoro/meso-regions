@@ -13,7 +13,7 @@ path_classes = Path("/app/data/meso/meso_data/data"
                     "/classes_subclasses_nodular.csv")
 path_images = Path("/app/data/meso/meso_data/data/resample/images_orig_reg")
 path_output = Path("//app/data/meso/meso_data/output"
-                   "/HyperparameterTuning/DISF")
+                   "/HyperparameterTuning/No_p_mask/DISF")
 
 path_masks_dilated = Path("/app/data/meso/meso_data/Dilation")
 
@@ -21,11 +21,11 @@ path_splits = Path("/app/data/meso/meso_data/data/splits")
 
 list_masks_dilated = os.listdir(path_masks_dilated)
 
-ids_train = list(sorted(
-    (pd.read_csv(path_splits / "training_set_classes_4.csv")["ID"]).to_list()))
-# ids_test = list(sorted(
-#     (pd.read_csv(path_splits / "test_set_classes_4.csv")["ID"]).to_list()))
-threads = min(os.cpu_count(), len(ids_train))
+# ids_train = list(sorted(
+#     (pd.read_csv(path_splits / "training_set_classes_4.csv")["ID"]).to_list()))
+ids_test = list(sorted(
+     (pd.read_csv(path_splits / "test_set_classes_4.csv")["ID"]).to_list()))
+threads = min(os.cpu_count(), len(ids_test))
 
 metrics_all = {}
 
@@ -45,20 +45,20 @@ for mask in tqdm(list_masks_dilated, desc="Masks"):
                     n_final=n_final,
                     p_seeds_init=p_seeds_final * 10,
                     p_seeds_final=p_seeds_final)
-                # config_superspels = define_config_superspels(ref_t=270,
-                #                                              domain='REG')
+                config_superspels = define_config_superspels(ref_t=270,
+                                                              domain='REG')
                 config_ece = define_config_ece(ref_t=270,
                                                domain='REG')
-                config = [config_disf, config_ece]
+                config = [config_disf,config_superspels, config_ece]
                 experiment_name = (f"{mask}/{n_final}_"
                                    f"{p_seeds_final}")
 
                 experiment = Experiment(
                     path_masks=path_masks,
-                    ids=ids_train,
+                    ids=ids_test,
                     path_classes=path_classes,
                     path_images=path_images,
-                    path_experiments=path_output / "train",
+                    path_experiments=path_output / "test",
                     experiment_name=experiment_name,
                     config=config,
                     threads=threads)
@@ -79,20 +79,20 @@ for mask in tqdm(list_masks_dilated, desc="Masks"):
                 n_final=n_final,
                 p_seeds_init=0,
                 p_seeds_final=0)
-            # config_superspels = define_config_superspels(ref_t=270,
-            #                                              domain='REG')
+            config_superspels = define_config_superspels(ref_t=270,
+                                                          domain='REG')
             config_ece = define_config_ece(ref_t=270,
                                            domain='REG')
-            config = [config_disf, config_ece]
+            config = [config_disf,config_superspels, config_ece]
             experiment_name = (f"{mask}/{n_final}_"
                                f"{0}")
 
             experiment = Experiment(
                 path_masks=path_masks,
-                ids=ids_train,
+                ids=ids_test,
                 path_classes=path_classes,
                 path_images=path_images,
-                path_experiments=path_output / "train",
+                path_experiments=path_output / "test",
                 experiment_name=experiment_name,
                 config=config,
                 threads=threads)
