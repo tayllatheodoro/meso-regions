@@ -37,7 +37,6 @@ class DivideWithECE(AbstractMethod):
         self.p_size = p_size
         self.predict_only_small = predict_only_small
 
-    # TODO: Implement with sicle, disf
     def apply(self, patient: Patient, **kwargs):
         try:
             print(f"Processing patient {patient.id}...")
@@ -54,15 +53,17 @@ class DivideWithECE(AbstractMethod):
                 self.segment_and_classify(patient, image, pleural_mask, self.n_segments, classify_immediately=False)
             else:
                 self.segment_and_classify(patient, image, pleural_mask, self.n_segments, classify_immediately=True)
+
             sv_m_mask, sv_b_mask = self.combine_supervoxel_masks(
                 patient,
                 pleural_mask)
-            self.s_vol = define_masks_volume(sv_m_mask)
 
             # classification
 
             n_supervoxel = len(patient.supervoxels_m_masks)
-            if n_supervoxel > 0 or self.s_vol > self.p_vol * 0.0001:
+            if n_supervoxel > 0:
+                self.s_vol = define_masks_volume(sv_m_mask)
+
                 self.predicted_diagnosis.append(
                     [patient.id, patient.diagnosis, 1,
                      patient.subclass_diagnosis, patient.nodular,
@@ -184,8 +185,9 @@ class DivideWithECE(AbstractMethod):
         # so that the voxels in the same supervoxel have the same label
         supervoxel_m_mask = np.zeros_like(pleural_mask)
         supervoxel_b_mask = np.zeros_like(pleural_mask)
-        for i, s in enumerate(patient.supervoxels_m_masks):
-            supervoxel_m_mask[s != 0] = i + 1
+        if len(patient.supervoxels_m_masks) > 0:
+            for i, s in enumerate(patient.supervoxels_m_masks):
+                supervoxel_m_mask[s != 0] = i + 1
         for i, s in enumerate(patient.supervoxels_b_masks):
             supervoxel_b_mask[s != 0] = i + 1
 
