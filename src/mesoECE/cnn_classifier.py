@@ -1,1 +1,0 @@
-# neural network for image classification
