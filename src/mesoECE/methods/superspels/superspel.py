@@ -5,7 +5,7 @@ import numpy as np
 
 from src.mesoECE.data_structure import Patient, MRImage
 from src.mesoECE.methods import AbstractMethod
-from src.mesoECE.methods.utils import correct_images_background
+
 from src.mesoECE.methods.superspels.utils import (define_superspels_mask,
                                                   define_mean_intensity_curves,
                                                   save_curves_and_interp_to_csv,

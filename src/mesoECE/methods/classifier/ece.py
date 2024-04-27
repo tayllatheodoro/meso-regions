@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
-from src.mesoECE.methods.utils import define_masks_volume
+from src.mesoECE.methods.utils import define_masks_volume, setup_directories
 
 from src.mesoECE.methods.superspels.utils import (plot_curves,
                                                   save_superspels_masks,
@@ -34,103 +34,23 @@ class ECE(AbstractMethod):
             print("ECE processing......", end="", flush=True)
 
             # Paths
-            path_m_images = self.path_ece / 'ece_images'
-            path_b_images = self.path_ece / 'benign_images'
-            path_plot = self.path_ece / 'plots'
-            path_df = self.path_ece / 'curves_df'
+            setup_directories(self.path_ece, ['ece_images',
+                                              'benign_images',
+                                              'plots',
+                                              'curves_df'])
+            mask = patient.get_image(self.ref_t).masks[
+                "supervoxels"].data.astype(np.int32)
+            mean_intensity, _ = define_mean_intensity_curves(patient=patient,
+                                                             mask=mask,
+                                                             domain=self.domain)
+            ece_labels, ece_mask = self.process_ece_detection(patient,
+                                                              mean_intensity)
 
-            os.makedirs(path_df, exist_ok=True)
-            os.makedirs(path_plot, exist_ok=True)
-            os.makedirs(path_m_images, exist_ok=True)
-            os.makedirs(path_b_images, exist_ok=True)
-
-            mean_intensity,_ = define_mean_intensity_curves(
-                patient=patient,
-                mask=patient.get_image(self.ref_t).masks[
-                    "supervoxels"].data.astype(np.int32),
-                domain=self.domain)
-
-            # Select which superspels have ece pattern
-            index_270 = patient.time_points.index(270)
-            ece_labels = superspels_labels_with_ece(
-                index_270=index_270,
-                mean_intensity_curve=mean_intensity)
-            # Define mask with superspels with ece pattern
-            # and benign masks
-            ece_mask = define_ece_mask(ece_labels,
-                                       patient.get_image(self.ref_t).masks[
-                                           "supervoxels"].data.astype(np.int32))
-
-            # Calculate the volume of the pleural mask
-            pleural_mask = patient.get_image(self.ref_t).masks[
-                "pleural_region"].data.astype(np.int32)
-            pleural_vol = define_masks_volume(mask=pleural_mask)
-
-            # Calculate the volume of the ece mask
-            ece_vol = define_masks_volume(mask=ece_mask)
-
-            # if there are superspels with ece pattern and the volume of the
-            # ece mask is greater than 0.01% of the pleural mask volume to
-            # reduce false positives
-
-            if ece_labels.__len__() > 0 and ece_vol > pleural_vol * 0.0001:
-                self.predicted_diagnosis.append(
-                    [patient.id, patient.diagnosis, 1,
-                     patient.subclass_diagnosis, patient.nodular,
-                     ece_labels.__len__(), ece_vol])
-
-                # Define mean intensity curves for superspels with ece pattern
-                ece_curves, benign_curves = define_ece_curves(
-                    mean_intensity_curves=mean_intensity,
-                    ece_labels=ece_labels)
-
-                # Save mean intensity curves to csv and interpolate of it
-                save_curves_and_interp_to_csv(patient=patient,
-                                              curves=ece_curves,
-                                              path=path_df,
-                                              curve_name='ece')
-                # #
-                save_curves_and_interp_to_csv(patient=patient,
-                                              curves=benign_curves,
-                                              path=path_df,
-                                              curve_name='benign')
-                #Plot ece curves vs time
-
-                # # Plot mean intensity curves
-                plot_curves(curve=ece_curves,
-                            time_points=patient.time_points,
-                            mask=ece_mask,
-                            filename=str(path_plot / f'ece_{patient.id}'),
-                            mean_plot=True,
-                            selected_labels=ece_labels)
-
-                #Save ece mask
-
-                nifti_args = patient.get_image(self.ref_t).nifti_props
-                #
-                nib.save(nib.Nifti1Image(ece_mask, **nifti_args),
-                         str(path_m_images / patient.get_image(
-                             self.ref_t).filename))
-                # save_superspels_masks(mask=benign_mask,
-                #                       nifti_args=nifti_args,
-                #                       patient=patient,
-                #                       domain=self.domain,
-                #                       ref_t=self.ref_t,
-                #                       path=path_m_images)
-
+            if ece_labels and self.significant_volume(ece_mask, patient):
+                self.process_malignant_case(patient, ece_labels, ece_mask,
+                                            mean_intensity)
             else:
-                self.predicted_diagnosis.append(
-                    [patient.id, patient.diagnosis, 0,
-                     patient.subclass_diagnosis, patient.nodular,
-                     ece_labels.__len__(), ece_vol])
-
-            # # Save benign mask
-            # save_superspels_masks(mask=ece_mask,
-            #                       nifti_args=nifti_args,
-            #                       patient=patient,
-            #                       domain=self.domain,
-            #                       ref_t=self.ref_t,
-            #                       path=path_b_images)
+                self.process_benign_case(patient, ece_labels, ece_mask)
 
             patient.path_masks['ece'] = self.path_ece
         except Exception as e:
@@ -146,3 +66,46 @@ class ECE(AbstractMethod):
 
     def result(self):
         return self.predicted_diagnosis
+
+    def process_ece_detection(self, patient, mean_intensity):
+        index_270 = patient.time_points.index(270)
+        ece_labels = superspels_labels_with_ece(index_270=index_270,
+                                                mean_intensity_curve=mean_intensity)
+        ece_mask = define_ece_mask(ece_labels,
+                                   patient.get_image(self.ref_t).masks[
+                                       "supervoxels"].data.astype(np.int32))
+        return ece_labels, ece_mask
+
+    def significant_volume(self, ece_mask, patient):
+        pleural_vol = define_masks_volume(
+            patient.get_image(self.ref_t).masks["pleural_region"].data.astype(
+                np.int32))
+        ece_vol = define_masks_volume(ece_mask)
+        return len(ece_mask) > 0 and ece_vol > pleural_vol * 0.0001
+
+    def process_malignant_case(self, patient, ece_labels, ece_mask,
+                               mean_intensity):
+        self.predicted_diagnosis.append(
+            [patient.id, patient.diagnosis, 1, patient.subclass_diagnosis,
+             patient.nodular, len(ece_labels), define_masks_volume(ece_mask)])
+
+        ece_curves, benign_curves = define_ece_curves(
+            mean_intensity_curves=mean_intensity, ece_labels=ece_labels)
+        save_curves_and_interp_to_csv(patient, ece_curves,
+                                      self.path_ece / 'curves_df', 'ece')
+        save_curves_and_interp_to_csv(patient, benign_curves,
+                                      self.path_ece / 'curves_df', 'benign')
+        plot_curves(curve=ece_curves, time_points=patient.time_points,
+                    mask=ece_mask,
+                    filename=str(self.path_ece / 'plots' / f'ece_{patient.id}'),
+                    mean_plot=True, selected_labels=ece_labels)
+
+        nifti_args = patient.get_image(self.ref_t).nifti_props
+        nib.save(nib.Nifti1Image(ece_mask, **nifti_args),
+                 str(self.path_ece / 'ece_images' / patient.get_image(
+                     self.ref_t).filename))
+
+    def process_benign_case(self, patient, ece_labels, ece_mask):
+        self.predicted_diagnosis.append(
+            [patient.id, patient.diagnosis, 0, patient.subclass_diagnosis,
+             patient.nodular, len(ece_labels), define_masks_volume(ece_mask)])

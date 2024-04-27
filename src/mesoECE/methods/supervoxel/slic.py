@@ -8,6 +8,9 @@ from src.mesoECE.methods import AbstractMethod
 
 from filelock import Timeout, FileLock
 
+from src.mesoECE.methods.utils import define_masks_volume
+
+
 class SLIC(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, n_segments: int,
                  compactness: float, p_seeds_final: float = 0.01):
@@ -24,14 +27,7 @@ class SLIC(AbstractMethod):
 
         try:
             mask = patient.get_image(self.ref_t).masks["pleural_region"].data
-
-            # Get number of seeds
-            n_seeds_final = self.n_segments
-            if self.n_segments == 0:
-                volume = int(np.sum(mask))
-                n_seeds_final = int(volume * self.p_seeds_final)
-            self.seeds.append([patient.id, 0, n_seeds_final])
-
+            n_seeds_final = self.calculate_seeds(patient, mask)
 
             # Get Spacing
             image = patient.get_image(self.ref_t).data
@@ -40,7 +36,6 @@ class SLIC(AbstractMethod):
             mri_spacing = image_header.get_zooms()
 
             # Apply SLIC in Current Patient in Volume from reference image
-
 
             supervoxels_mask = slic(image, mask=mask, channel_axis=None,
                                     compactness=self.compactness,
@@ -67,3 +62,12 @@ class SLIC(AbstractMethod):
 
     def result(self):
         return self.seeds
+
+    def calculate_seeds(self, patient: Patient, mask: np.ndarray):
+        # Get number of seeds
+        n_seeds_final = self.n_segments
+        if self.n_segments == 0:
+            volume = define_masks_volume(mask)
+            n_seeds_final = int(volume * self.p_seeds_final)
+        self.seeds.append([patient.id, 0, n_seeds_final])
+        return n_seeds_final
