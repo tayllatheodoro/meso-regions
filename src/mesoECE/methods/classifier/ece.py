@@ -1,32 +1,29 @@
 import numpy as np
-import os
 import nibabel as nib
 from pathlib import Path
-
-from matplotlib import pyplot as plt
-
 from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
-from src.mesoECE.methods.utils import define_masks_volume, setup_directories
+from src.mesoECE.methods.utils import define_masks_volume, setup_directories, \
+    save_nii_mask
 
 from src.mesoECE.methods.superspels.utils import (plot_curves,
-                                                  save_superspels_masks,
-                                                  save_curves_and_interp_to_csv)
+                                                  save_curves_and_interp_to_csv,
+                                                  save_and_plot_curves,
+                                                  calculate_curves)
 from src.mesoECE.methods.classifier.utils import (superspels_labels_with_ece,
                                                   define_ece_curves,
                                                   define_ece_mask)
-from src.mesoECE.methods.superspels.utils import define_mean_intensity_curves
+from src.mesoECE.methods.superspels.utils import define_mean_std_intensity_curves
 
 
 class ECE(AbstractMethod):
-    def __init__(self, path: Path, ref_t: int, domain: str = None):
+    def __init__(self, path: Path, ref_t: int):
         super().__init__()
 
         self.thread_safe = False
         self.predicted_diagnosis = []
         self.path_ece = path
         self.ref_t = ref_t
-        self.domain = domain
 
     def apply(self, patient: Patient, **kwargs):
         try:
@@ -38,11 +35,8 @@ class ECE(AbstractMethod):
                                               'benign_images',
                                               'plots',
                                               'curves_df'])
-            mask = patient.get_image(self.ref_t).masks[
-                "supervoxels"].data.astype(np.int32)
-            mean_intensity, _ = define_mean_intensity_curves(patient=patient,
-                                                             mask=mask,
-                                                             domain=self.domain)
+
+            mean_intensity, std_intensity = calculate_curves(patient=patient)
             ece_labels, ece_mask = self.process_ece_detection(patient,
                                                               mean_intensity)
 
@@ -68,8 +62,7 @@ class ECE(AbstractMethod):
         return self.predicted_diagnosis
 
     def process_ece_detection(self, patient, mean_intensity):
-        index_270 = patient.time_points.index(270)
-        ece_labels = superspels_labels_with_ece(index_270=index_270,
+        ece_labels = superspels_labels_with_ece(index_270=patient.time_points.index(270),
                                                 mean_intensity_curve=mean_intensity)
         ece_mask = define_ece_mask(ece_labels,
                                    patient.get_image(self.ref_t).masks[
@@ -91,19 +84,21 @@ class ECE(AbstractMethod):
 
         ece_curves, benign_curves = define_ece_curves(
             mean_intensity_curves=mean_intensity, ece_labels=ece_labels)
-        save_curves_and_interp_to_csv(patient, ece_curves,
-                                      self.path_ece / 'curves_df', 'ece')
-        save_curves_and_interp_to_csv(patient, benign_curves,
-                                      self.path_ece / 'curves_df', 'benign')
-        plot_curves(curve=ece_curves, time_points=patient.time_points,
-                    mask=ece_mask,
-                    filename=str(self.path_ece / 'plots' / f'ece_{patient.id}'),
-                    mean_plot=True, selected_labels=ece_labels)
 
-        nifti_args = patient.get_image(self.ref_t).nifti_props
-        nib.save(nib.Nifti1Image(ece_mask, **nifti_args),
-                 str(self.path_ece / 'ece_images' / patient.get_image(
-                     self.ref_t).filename))
+        save_and_plot_curves(path=self.path_ece,
+                             patient=patient,
+                             curves=ece_curves,
+                             curve_name='ece',
+                             mask=ece_mask)
+        # save_and_plot_curves(path=self.path_ece,
+        #                      patient=patient,
+        #                      curves=benign_curves,
+        #                      curve_name='benign',
+        #                      mask=ece_mask)
+
+        save_nii_mask(patient=patient,
+                      path=self.path_ece / 'ece_images',
+                      mask=ece_mask)
 
     def process_benign_case(self, patient, ece_labels, ece_mask):
         self.predicted_diagnosis.append(

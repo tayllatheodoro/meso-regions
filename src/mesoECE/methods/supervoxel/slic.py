@@ -8,7 +8,7 @@ from src.mesoECE.methods import AbstractMethod
 
 from filelock import Timeout, FileLock
 
-from src.mesoECE.methods.utils import define_masks_volume
+from src.mesoECE.methods.utils import define_masks_volume, save_nii_mask
 
 
 class SLIC(AbstractMethod):
@@ -43,10 +43,11 @@ class SLIC(AbstractMethod):
                                     spacing=mri_spacing,
                                     start_label=1)
             # Save supervoxels mask
-            nib.save(nib.Nifti1Image(supervoxels_mask.astype(np.int32),
-                                     **nifti_args),
-                     str(self.path_supervoxels / patient.get_image(
-                         self.ref_t).filename))
+
+            save_nii_mask(patient,
+                          ref_t=270,
+                          path=self.path_supervoxels,
+                          mask=supervoxels_mask)
 
             # Update patient path masks
             patient.path_masks['supervoxels'] = self.path_supervoxels

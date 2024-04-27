@@ -1,7 +1,7 @@
 # This file contains functions to define configuration dictionaries for each module.
 
 ## module: img_preprocess
-def define_ant_inv_mask(ref_t, path_transforms):
+def define_ant_inv_mask(path_transforms,ref_t=270):
     """Define configuration for ANTsInvMask method.
 
     Args:
@@ -73,7 +73,7 @@ def define_resample(ref_t: int = 270, img_spacing: float = 1.78, img_dim=None):
 
 
 ## module: mask_preprocess
-def define_config_dilate(ref_t, dilation_radius, p_center_distance, otsu = False,
+def define_config_dilate(dilation_radius, p_center_distance,ref_t =270, otsu = False,
                          mask_to_dilate = 'fluid'):
     """Define configuration for Dilation method.
 
@@ -98,7 +98,7 @@ def define_config_dilate(ref_t, dilation_radius, p_center_distance, otsu = False
     return config_dilation
 
 
-def define_config_add_lung(ref_t):
+def define_config_add_lung(ref_t=270):
     """Define configuration for AddLung method.
 
     Add lung to the fluid mask before dilating it.
@@ -115,7 +115,7 @@ def define_config_add_lung(ref_t):
     return config_add_lung
 
 
-def define_config_sub_lung(ref_t):
+def define_config_sub_lung(ref_t=270):
     """Define configuration for SubLung method.
 
     Sub lung from the fluid mask after  dilating it.
@@ -133,7 +133,7 @@ def define_config_sub_lung(ref_t):
 
 
 ## module: supervoxels
-def define_config_slic(ref_t, n_segments, compactness, p_seeds_final):
+def define_config_slic(n_segments, compactness, p_seeds_final,ref_t=270):
     """Define configuration for SLIC method.
 
     Args:
@@ -154,7 +154,7 @@ def define_config_slic(ref_t, n_segments, compactness, p_seeds_final):
     return config_slic
 
 
-def define_config_disf(ref_t, n_init, n_final, p_seeds_init, p_seeds_final,
+def define_config_disf(n_init, n_final, p_seeds_init, p_seeds_final,ref_t =270,
                        ift_path: str = '/data_lids/home/taylla/ift'):
     """Define configuration for DISF method.
 
@@ -182,50 +182,48 @@ def define_config_disf(ref_t, n_init, n_final, p_seeds_init, p_seeds_final,
 
 
 ## module: superpels
-def define_config_superspels(ref_t, domain='REG'):
+def define_config_superspels(ref_t=270):
     """Define configuration for Superspel method.
 
     Args:
         -ref_t          Reference time point.
-        -domain         Domain of the analysis of superspels [REG, ORIG].
     Returns:
         -config_superspels  Configuration dictionary for Superspel method.
         """
     config_superspels = {
         "module": "superspels",
         "method": "Superspel",
-        "args": {"ref_t": ref_t, "domain": domain}
+        "args": {"ref_t": ref_t}
     }
     return config_superspels
 
 
 ## module: classifier
 
-def define_config_ece(ref_t, domain='REG'):
+def define_config_ece(ref_t=270):
     """Define configuration for ECE method.
 
     Args:
         -ref_t          Reference time point.
-        -domain         Domain of the analysis of ECE [REG, ORIG].
     Returns:
         -config_ece     Configuration dictionary for ECE method.
         """
     config_ece = {
         "module": "classifier",
         "method": "ECE",
-        "args": {"ref_t": ref_t, "domain": domain}
+        "args": {"ref_t": ref_t}
     }
     return config_ece
 
 
 ## module : supervoxel_with_ece
 
-def define_config_full_ece(ref_t, filter_size, with_mask):
+def define_config_full_ece(filter_size, with_mask,ref_t=270):
     """Define configuration for FullECE method.
 
     Args:
         -ref_t          Reference time point.
-        -domain         Domain of the analysis of FullECE [REG, ORIG].
+
     Returns:
         -config_full_ece    Configuration dictionary for FullECE method.
     """
@@ -238,10 +236,9 @@ def define_config_full_ece(ref_t, filter_size, with_mask):
     return config_full_ece
 
 
-def define_config_div_with_ece(ref_t: int, n_segments: int,
-                               compactness: float, p_size: int =1000,
+def define_config_div_with_ece(n_segments: int,
+                               compactness: float,ref_t =270, p_size: int =1000,
                                method: str = 'SLIC',
-                               domain: str = None,
                                predict_only_small: bool = False):
     """Define configuration for DivideWithECE method.
 
@@ -253,7 +250,6 @@ def define_config_div_with_ece(ref_t: int, n_segments: int,
         -method                 Method to use for the division
                                     Options: [DISF, SLIC, SICLE].
                                     Default: SLIC.
-        -domain                 Domain of the analysis of DividingECE [REG, ORIG].
         -predict_only_small     Predict only small patches.
         -decrease_n_segments    Decrease the number of segments.
     Returns:
@@ -264,7 +260,7 @@ def define_config_div_with_ece(ref_t: int, n_segments: int,
         "method": "DivideWithECE",
         "args": {"ref_t": ref_t, "n_segments": n_segments,
                  "compactness": compactness, "p_size": p_size,
-                 "method": method, "domain": domain,
+                 "method": method,
                  "predict_only_small": predict_only_small}
     }
     return config_div_with_ece

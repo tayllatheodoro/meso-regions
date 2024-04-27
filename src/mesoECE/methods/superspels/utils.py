@@ -1,25 +1,22 @@
+from pathlib import Path
+from typing import Union
+
 import numpy as np
 import pandas as pd
 import skimage
 from matplotlib import pyplot as plt
 from scipy.interpolate import interp1d
-import nibabel as nib
-
 from src.mesoECE.data_structure import Patient
+from src.mesoECE.methods.utils import setup_directories
 
 
-def plot_curves(curve, mask, time_points,
-                filename=None,
-                title='ECE Curves', mean_plot=False, selected_labels=None):
+def plot_curves(curve: np.ndarray, mask: np.ndarray, time_points: list[int],
+                filename: Union[str,Path] = None, title: str = 'Curves',
+                mean_plot: bool = False) -> None:
     plt.figure(figsize=(10, 6))
 
-    if selected_labels is not None:
-        labels = selected_labels
-        non_zero_curve = np.zeros((len(labels), curve.shape[1]))
-
-    else:
-        labels = np.unique(mask[mask > 0])
-        non_zero_curve = np.zeros((labels.shape[0], curve.shape[1]))
+    labels = np.unique(mask[mask > 0])
+    non_zero_curve = np.zeros((labels.shape[0], curve.shape[1]))
     for i, label in enumerate(labels):
         if np.sum(curve[int(label)]) > 0:
             plt.plot(time_points, curve[int(label)],
@@ -61,14 +58,40 @@ def plot_curves(curve, mask, time_points,
         plt.close('all')
 
 
-def save_curves_to_csv(curves, time_points, filename=None):
+def save_and_plot_curves(path: Path, patient: Patient, curves: np.ndarray,
+                         curve_name: str,mask, ref_t=270) -> None:
+    setup_directories(path, ['plots', 'curves_df', f'plots/{curve_name}'])
+    curve_path = path / 'curves_df'
+    plot_path = path / 'plots' / curve_name
+
+    # Save curves and interpolation to CSV
+    save_curves_and_interp_to_csv(
+        patient=patient,
+        curves=curves,
+        path=curve_path,
+        curve_name=curve_name
+    )
+
+    # Plot curves
+    plot_curves(
+        curve=curves,
+        time_points=patient.time_points,
+        mask=mask,
+        filename=plot_path / f'{patient.id}',
+        mean_plot=True,
+        title=f'All Curves - {curve_name.capitalize()}'
+    )
+
+
+def save_curves_to_csv(curves: np.ndarray, time_points: list[int],
+                       filename: str = None) -> None:
     column_names_str = list(map(str, time_points))
     df = pd.DataFrame(curves, columns=column_names_str)
     df.to_csv(filename, index=False)
 
 
-def interp_curve_missing_time_points(curves, time_points):
-    n_curves = curves.shape[0]
+def interp_curve_missing_time_points(curves: np.ndarray,
+                                     time_points: list[int])-> tuple[np.ndarray, list[int]]:
 
     standard_time_points = [0, 40, 80, 180, 270, 540, 810]
 
@@ -92,8 +115,8 @@ def interp_curve_missing_time_points(curves, time_points):
     return new_curves, standard_time_points
 
 
-def save_curves_and_interp_to_csv(patient, curves,
-                                  path, curve_name):
+def save_curves_and_interp_to_csv(path: Path,patient:Patient, curves: np.ndarray,
+                                  curve_name:str)-> None:
     save_curves_to_csv(
         curves=curves,
         time_points=patient.time_points,
@@ -113,8 +136,7 @@ def save_curves_and_interp_to_csv(patient, curves,
             f'interp_{curve_name}_{patient.id}.csv'))
 
 
-def define_superspels_curve_reg(patient: Patient,
-                                mask):
+def define_mean_std_intensity_curves(patient: Patient, mask: np.ndarray)-> tuple[np.ndarray, np.ndarray]:
     mean_intensity_curves = np.zeros(
         (int(mask.max()) + 1,
          patient.time_points.__len__()))
@@ -135,74 +157,13 @@ def define_superspels_curve_reg(patient: Patient,
                 img_in_bbox[lbl_in_bbox > 0].mean()
             std_intensity_curves[rp.label, patient.time_points.index(t)] = \
                 img_in_bbox[lbl_in_bbox > 0].std()
-    return mean_intensity_curves, std_intensity_curves
-
-
-def define_superspels_curve_orig(patient: Patient,
-                                 images_corrected,
-                                 mask):
-    mean_intensity_curves = np.zeros(
-        (int(mask.data.max()) + 1,
-         patient.time_points.__len__()))
-    for t in patient.time_points:
-        rps = skimage.measure.regionprops(mask[patient.time_points.index(t)])
-        img = images_corrected[patient.time_points.index(t)]
-
-        for rp in rps:
-            slice_bbox = tuple(
-                [slice(dim_start, dim_finish) for dim_start, dim_finish
-                 in zip(rp.bbox[:3], rp.bbox[3:])])
-            lbl_in_bbox = rp.image
-            img_in_bbox = img[slice_bbox]
-
-            mean_intensity_curves[rp.label, patient.time_points.index(t)] = \
-                img_in_bbox[lbl_in_bbox > 0].mean()
-    return mean_intensity_curves
-
-
-def define_mean_intensity_curves(patient: Patient, mask, domain):
-    mean_intensity_curves = None
-
-    mean_intensity_curves, std_intensity_curves = define_superspels_curve_reg(
-        patient=patient,
-        mask=mask)
-
-    # if domain == 'ORIG':
-    #     mean_intensity_curves = define_superspels_curve_orig(
-    #         patient=patient,
-    #         images_corrected=images_corrected,
-    #         mask=mask)
 
     return mean_intensity_curves, std_intensity_curves
 
 
-def define_superspels_mask(patient: Patient, domain, ref_t):
-    nifti_args = None
-    ss_mask = None
-    if domain == 'REG':
-        nifti_args = patient.get_image(ref_t).nifti_props
-        ss_mask = patient.get_image(ref_t).masks[
-            "supervoxels"].data.astype(np.int32)
-    elif domain == 'ORIG':
-        ss_mask = []
-        nifti_args = []
-        for t in patient.time_points:
-            nifti_args.append(
-                patient.get_image(t).masks["supervoxels"].nifti_props)
-            ss_mask.append(
-                patient.get_image(t).masks["supervoxels"].data.astype(
-                    np.int32))
-
-    return ss_mask, nifti_args
-
-
-def save_superspels_masks(mask, nifti_args, patient, domain, ref_t, path):
-    if domain == 'REG':
-        nib.save(nib.Nifti1Image(mask, **nifti_args),
-                 str(path / patient.get_image(
-                     ref_t).filename))
-    elif domain == 'ORIG':
-        for i in range(len(mask)):
-            nib.save(nib.Nifti1Image(mask[i], **nifti_args[i]),
-                     str(path / patient.get_image(
-                         patient.time_points[i]).filename))
+def calculate_curves(patient: Patient,
+                     ref_t=270,
+                     mask_name='supervoxels')-> tuple[np.ndarray, np.ndarray]:
+    mask = patient.get_image(ref_t).masks[mask_name].data.astype(
+        np.int32)
+    return define_mean_std_intensity_curves(patient=patient, mask=mask)
