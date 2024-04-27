@@ -181,43 +181,6 @@ def define_config_disf(ref_t, n_init, n_final, p_seeds_init, p_seeds_final,
     return config_disf
 
 
-def define_config_sicle(ref_t, n_init, n_final, p_seeds_init, p_seeds_final,
-                        conn_opt, crit_opt, pen_opt):
-    """Define configuration for SICLE method.
-
-    Args:
-        -ref_t          Reference time point.
-        -n_init         Number of seeds at initial time point. If 0, it will be
-                        calculated as a percentage of the volume*.
-        -n_final        Number of seeds at final time point. If 0, it will be
-                        calculated as a percentage of the volume*.
-        -p_seeds_init   Percentage of seeds at initial time point.
-        -p_seeds_final  Percentage of seeds at final time point.
-        -conn-opt       IFT connectivity function.
-                            -Options: fmax, fsum, custom.
-                            -Default: fmax
-        -crit-opt       Seed removal criterion.
-                            -Options: size, minsc, maxsc, spread, custom.
-                            -Default: minsc
-        -pen-opt        Seed relevance penalization.
-                            -Options: none, obj, bord, osb, bobs, custom.
-                            -Default: none
-        *if n_init and n_final are both 0, the percentage of seeds will be
-        calculated for both time points.
-    Returns:
-        -config_sicle   Configuration dictionary for SICLE method.
-    """
-    config_sicle = {
-        "module": "supervoxel",
-        "method": "SICLE",
-        "args": {"ref_t": ref_t, "n_init": n_init, "n_final": n_final,
-                 "p_seeds_init": p_seeds_init, "p_seeds_final": p_seeds_final,
-                 "conn_opt": conn_opt, "crit_opt": crit_opt,
-                 "pen_opt": pen_opt}
-    }
-    return config_sicle
-
-
 ## module: superpels
 def define_config_superspels(ref_t, domain='REG'):
     """Define configuration for Superspel method.
