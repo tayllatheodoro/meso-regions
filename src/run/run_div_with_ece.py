@@ -17,7 +17,7 @@ path_masks_dilated = Path("/app/data/meso/meso_data/Dilation")
 path_splits = Path("/app/data/meso/meso_data/data/splits")
 
 list_masks_dilated = os.listdir(path_masks_dilated)
-# ids_train = [12, 93]
+# ids_train = [62]
 ids_train = list(sorted(
     (pd.read_csv(path_splits / "training_set_classes_4.csv")["ID"]).to_list()))
 # ids_test = list(sorted(
