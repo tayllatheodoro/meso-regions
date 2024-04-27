@@ -192,7 +192,6 @@ class DivideWithECE(AbstractMethod):
 
             iteration_count += 1
 
-
     def predict_ece(self, patient, mask):
         curves, std_curves = define_mean_intensity_curves(patient=patient, mask=mask, domain=self.domain)
         ece_labels = superspels_labels_with_ece(index_270=patient.time_points.index(270),
