@@ -154,7 +154,8 @@ def define_config_slic(ref_t, n_segments, compactness, p_seeds_final):
     return config_slic
 
 
-def define_config_disf(ref_t, n_init, n_final, p_seeds_init, p_seeds_final):
+def define_config_disf(ref_t, n_init, n_final, p_seeds_init, p_seeds_final,
+                       ift_path: str = '/data_lids/home/taylla/ift'):
     """Define configuration for DISF method.
 
     Args:
@@ -174,7 +175,8 @@ def define_config_disf(ref_t, n_init, n_final, p_seeds_init, p_seeds_final):
         "module": "supervoxel",
         "method": "DISF",
         "args": {"ref_t": ref_t, "n_init": n_init, "n_final": n_final,
-                 "p_seeds_init": p_seeds_init, "p_seeds_final": p_seeds_final}
+                 "p_seeds_init": p_seeds_init, "p_seeds_final": p_seeds_final,
+                 'ift_path': ift_path}
     }
     return config_disf
 

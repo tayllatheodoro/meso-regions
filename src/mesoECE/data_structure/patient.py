@@ -26,9 +26,6 @@ class Patient:
         self.nodular = nodular
         self.supervoxels_m_masks = []
         self.supervoxels_b_masks = []
-        self.mean_intensity = None
-        self.nifti_args = None
-        self.ss_mask = None
         self.load()
 
     def load(self) -> None:
@@ -54,10 +51,10 @@ class Patient:
 
             self._background_otsu[t] = skimage.filters.threshold_otsu(self._images[t].data)
 
-    def get_image(self, t) -> MRImage:
+    def get_image(self, t: int) -> MRImage:
         return self._images[t]
 
-    def background_otsu(self, t) -> Union[NoneType, Any]:
+    def background_otsu(self, t: int) -> Union[NoneType, Any]:
         return self._background_otsu[t]
 
     @property
