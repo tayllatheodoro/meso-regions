@@ -38,7 +38,7 @@ class DivideWithECE(AbstractMethod):
         self.predict_only_small = predict_only_small
 
     def apply(self, patient: Patient, **kwargs):
-        try:
+        if True:
             print(f"Processing patient {patient.id}...")
             setup_directories(path=self.path_sv,
                               dir_names=['ece_images', 'benign_images',
@@ -47,6 +47,7 @@ class DivideWithECE(AbstractMethod):
             image = patient.get_image(self.ref_t).data
             nifti_args = patient.get_image(self.ref_t).nifti_props
             self.mri_spacing = nifti_args["header"].get_zooms()
+            self.p_vol = define_masks_volume(pleural_mask)
 
             # Process the segmentation based on the `predict_only_small` flag
             if self.predict_only_small:
@@ -57,12 +58,12 @@ class DivideWithECE(AbstractMethod):
             sv_m_mask, sv_b_mask = self.combine_supervoxel_masks(
                 patient,
                 pleural_mask)
-
+            if sv_m_mask is not None:
+                self.s_vol = define_masks_volume(sv_m_mask)
             # classification
 
             n_supervoxel = len(patient.supervoxels_m_masks)
-            if n_supervoxel > 0:
-                self.s_vol = define_masks_volume(sv_m_mask)
+            if sv_m_mask is not None and self.s_vol > self.p_vol * 0.0001:
 
                 self.predicted_diagnosis.append(
                     [patient.id, patient.diagnosis, 1,
@@ -97,11 +98,16 @@ class DivideWithECE(AbstractMethod):
                              self.ref_t).filename))
 
 
-            else:
+            elif sv_m_mask is not None and self.s_vol <= self.p_vol * 0.0001:
                 self.predicted_diagnosis.append(
                     [patient.id, patient.diagnosis, 0,
                      patient.subclass_diagnosis, patient.nodular,
                      n_supervoxel, self.s_vol])
+            else:
+                self.predicted_diagnosis.append(
+                    [patient.id, patient.diagnosis, 0,
+                     patient.subclass_diagnosis, patient.nodular,
+                     n_supervoxel, 0])
 
             # # save benign supervoxels
             #
@@ -132,9 +138,8 @@ class DivideWithECE(AbstractMethod):
                         mean_plot=True,
                         title='Benign Curves')
 
-
-        except Exception as e:
-            print(f"Error processing patient {patient.id}: {e}")
+        # except Exception as e:
+        #     print(f"Error processing patient {patient.id}: {e}")
 
         new_patient = Patient(path=patient.path,
                               path_masks=patient.path_masks,
@@ -147,7 +152,7 @@ class DivideWithECE(AbstractMethod):
     def result(self):
         return self.predicted_diagnosis
 
-    def segment_and_classify(self, patient, image, mask, n_segments, classify_immediately):
+    def segment_and_classify(self, patient, image, mask, n_segments, classify_immediately=False):
         stack = [(image, mask)]
         iteration_count = 0  # Safeguard against infinite loops
         max_iterations = 1000  # Set according to expected segmentation depth
@@ -159,15 +164,17 @@ class DivideWithECE(AbstractMethod):
 
             img, msk = stack.pop()
             current_volume = define_masks_volume(msk)
-           # print(f"Processing segment with volume: {current_volume}")
+            # print(f"Processing segment with volume: {current_volume}")
 
-            if current_volume <= self.p_size or classify_immediately:
+            if current_volume <= self.p_size:
                 diagnosis = self.predict_ece(patient, msk)
-                #print(f"Segment classified with diagnosis: {diagnosis}")
+                # print(f"Segment classified with diagnosis: {diagnosis}")
                 if diagnosis == 1:
                     patient.supervoxels_m_masks.append(msk)
                 else:
                     patient.supervoxels_b_masks.append(msk)
+            elif len(stack) > 2 and self.predict_ece(patient, msk) and classify_immediately:
+                patient.supervoxels_m_masks.append(msk)
             else:
                 supervoxel_mask = slic(image=img, mask=msk, compactness=self.compactness,
                                        n_segments=n_segments, channel_axis=None, start_label=1,
@@ -179,18 +186,29 @@ class DivideWithECE(AbstractMethod):
                         slice(dim_start, dim_finish) for dim_start, dim_finish in zip(rp.bbox[:3], rp.bbox[3:]))
                     lbl_in_bbox = rp.image
                     div_mask[slice_bbox] = lbl_in_bbox
-                    if np.any(div_mask != msk):  # Ensure new mask is different
+                    if np.any(div_mask != msk) and define_masks_volume(msk) > 1:  # Ensure new mask is different
                         stack.append((img, div_mask))
-                    #print(f"New segment pushed with volume: {define_masks_volume(div_mask)}")
+                    # print(f"New segment pushed with volume: {define_masks_volume(div_mask)}")
 
             iteration_count += 1
 
+
     def predict_ece(self, patient, mask):
-        curves = define_mean_intensity_curves(patient=patient, mask=mask, domain=self.domain)
+        curves, std_curves = define_mean_intensity_curves(patient=patient, mask=mask, domain=self.domain)
         ece_labels = superspels_labels_with_ece(index_270=patient.time_points.index(270),
-                                                mean_intensity_curve=curves[0])
+                                                mean_intensity_curve=curves)
+
         s_vol = define_masks_volume(mask)
-        return 1 if len(ece_labels) > 0 and s_vol > self.p_size * 0.0001 else 0
+        # if len(ece_labels) > 0:
+        #
+        #     if s_vol > self.p_vol * 0.0001:
+        #          return 1
+        #     else:
+        #         return 0
+        # else:
+        #     return 0
+
+        return 1 if len(ece_labels) > 0 and s_vol > self.p_vol * 0.0001 else 0
 
     @staticmethod
     def combine_supervoxel_masks(patient: Patient, pleural_mask):
@@ -201,7 +219,8 @@ class DivideWithECE(AbstractMethod):
         if len(patient.supervoxels_m_masks) > 0:
             for i, s in enumerate(patient.supervoxels_m_masks):
                 supervoxel_m_mask[s != 0] = i + 1
-        for i, s in enumerate(patient.supervoxels_b_masks):
-            supervoxel_b_mask[s != 0] = i + 1
+        if len(patient.supervoxels_b_masks) > 0:
+            for i, s in enumerate(patient.supervoxels_b_masks):
+                supervoxel_b_mask[s != 0] = i + 1
 
         return supervoxel_m_mask, supervoxel_b_mask

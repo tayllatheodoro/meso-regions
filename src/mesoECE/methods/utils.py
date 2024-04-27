@@ -10,7 +10,10 @@ def setup_directories(path: Path, dir_names: list):
         os.makedirs(path / directory, exist_ok=True)
 def define_masks_volume(mask):
     mask_volume = np.count_nonzero(mask)
-    return mask_volume
+    if mask_volume is None:
+        return 0
+    else:
+        return mask_volume
 
 
 def correct_image_background(patient: Patient, t):
