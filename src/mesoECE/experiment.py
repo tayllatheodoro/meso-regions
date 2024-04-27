@@ -138,9 +138,9 @@ class Experiment:
             if method.result() is not None:
                 self.results[method.__class__.__name__] = method.result()
 
-        self.result_classifier()
-        #self.results_seeds()
-        self.classifier_metrics()
+        #self.result_classifier()
+        # self.results_seeds()
+        #self.classifier_metrics()
 
     def result_analysis(self):
 
@@ -170,8 +170,6 @@ class Experiment:
             supervoxel = "SLIC"
         elif 'DISF' in self.results:
             supervoxel = "DISF"
-        elif 'SICLE' in self.results:
-            supervoxel = "SICLE"
 
         df = pd.DataFrame(self.results[supervoxel],
                           columns=['IDs', 'INITIAL_SEEDS', 'FINAL_SEEDS'])
@@ -206,8 +204,10 @@ class Experiment:
         metrics_exp['Specificity'] = metrics.precision_score(y, y_pred)
 
         tn, fp, fn, tp = metrics.confusion_matrix(y, y_pred).ravel()
-        metrics_exp['PPV'] = tp / (tp + fp)
-        metrics_exp['NPV'] = tn / (tn + fn)
+        if (tp + fp) > 0:
+            metrics_exp['PPV'] = tp / (tp + fp)
+        elif (tn + fn) > 0:
+            metrics_exp['NPV'] = tn / (tn + fn)
         metrics_exp['FP'] = fp
         metrics_exp['FN'] = fn
         metrics_exp['TN'] = tn
