@@ -11,7 +11,7 @@ from src.mesoECE.methods.utils import setup_directories
 
 
 def plot_curves(curve: np.ndarray, mask: np.ndarray, time_points: list[int],
-                filename: Union[str,Path] = None, title: str = 'Curves',
+                filename: Union[str, Path] = None, title: str = 'Curves',
                 mean_plot: bool = False) -> None:
     plt.figure(figsize=(10, 6))
 
@@ -59,7 +59,7 @@ def plot_curves(curve: np.ndarray, mask: np.ndarray, time_points: list[int],
 
 
 def save_and_plot_curves(path: Path, patient: Patient, curves: np.ndarray,
-                         curve_name: str,mask, ref_t=270) -> None:
+                         curve_name: str, mask: np.ndarray) -> None:
     setup_directories(path, ['plots', 'curves_df', f'plots/{curve_name}'])
     curve_path = path / 'curves_df'
     plot_path = path / 'plots' / curve_name
@@ -91,8 +91,8 @@ def save_curves_to_csv(curves: np.ndarray, time_points: list[int],
 
 
 def interp_curve_missing_time_points(curves: np.ndarray,
-                                     time_points: list[int])-> tuple[np.ndarray, list[int]]:
-
+                                     time_points: list[int]) -> tuple[
+    np.ndarray, list[int]]:
     standard_time_points = [0, 40, 80, 180, 270, 540, 810]
 
     new_curves = np.zeros((curves.shape[0], len(standard_time_points)))
@@ -115,8 +115,9 @@ def interp_curve_missing_time_points(curves: np.ndarray,
     return new_curves, standard_time_points
 
 
-def save_curves_and_interp_to_csv(path: Path,patient:Patient, curves: np.ndarray,
-                                  curve_name:str)-> None:
+def save_curves_and_interp_to_csv(path: Path, patient: Patient,
+                                  curves: np.ndarray,
+                                  curve_name: str) -> None:
     save_curves_to_csv(
         curves=curves,
         time_points=patient.time_points,
@@ -136,7 +137,8 @@ def save_curves_and_interp_to_csv(path: Path,patient:Patient, curves: np.ndarray
             f'interp_{curve_name}_{patient.id}.csv'))
 
 
-def define_mean_std_intensity_curves(patient: Patient, mask: np.ndarray)-> tuple[np.ndarray, np.ndarray]:
+def define_mean_std_intensity_curves(patient: Patient, mask: np.ndarray) -> \
+tuple[np.ndarray, np.ndarray]:
     mean_intensity_curves = np.zeros(
         (int(mask.max()) + 1,
          patient.time_points.__len__()))
@@ -163,7 +165,7 @@ def define_mean_std_intensity_curves(patient: Patient, mask: np.ndarray)-> tuple
 
 def calculate_curves(patient: Patient,
                      ref_t=270,
-                     mask_name='supervoxels')-> tuple[np.ndarray, np.ndarray]:
+                     mask_name='supervoxels') -> tuple[np.ndarray, np.ndarray]:
     mask = patient.get_image(ref_t).masks[mask_name].data.astype(
         np.int32)
     return define_mean_std_intensity_curves(patient=patient, mask=mask)

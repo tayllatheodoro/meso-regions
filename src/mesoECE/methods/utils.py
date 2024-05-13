@@ -9,6 +9,8 @@ import nibabel as nib
 def setup_directories(path: Path, dir_names: list):
     for directory in dir_names:
         os.makedirs(path / directory, exist_ok=True)
+
+
 def define_masks_volume(mask: np.ndarray):
     mask_volume = np.count_nonzero(mask)
     return mask_volume
@@ -32,6 +34,3 @@ def correct_images_background(patient: Patient):
     for t in patient.time_points:
         images_corrected = correct_image_background(patient, t)
     return images_corrected
-
-
-

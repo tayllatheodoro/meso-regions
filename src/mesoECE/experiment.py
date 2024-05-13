@@ -138,9 +138,9 @@ class Experiment:
             if method.result() is not None:
                 self.results[method.__class__.__name__] = method.result()
 
-        #self.result_classifier()
-        # self.results_seeds()
-        #self.classifier_metrics()
+        self.result_classifier()
+        self.results_seeds()
+        self.classifier_metrics()
 
     def result_analysis(self):
 

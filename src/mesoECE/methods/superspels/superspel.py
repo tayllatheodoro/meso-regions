@@ -5,7 +5,6 @@ from src.mesoECE.methods.superspels.utils import (
 
     save_and_plot_curves, calculate_curves)
 
-
 from src.mesoECE.methods.utils import setup_directories
 
 
@@ -29,14 +28,13 @@ class Superspel(AbstractMethod):
 
             save_and_plot_curves(path=self.path_superspels,
                                  patient=patient,
-                                 ref_t=270,
                                  curves=mean_intensity,
                                  curve_name='mean_intensity',
-                                 mask=patient.get_image(self.ref_t).masks['supervoxels'].data)
-            save_and_plot_curves(path = self.path_superspels,
+                                 mask=patient.get_image(self.ref_t).masks[
+                                     'supervoxels'].data)
+            save_and_plot_curves(path=self.path_superspels,
                                  patient=patient,
-                                 ref_t=270,
-                                 curves= std_intensity,
+                                 curves=std_intensity,
                                  curve_name='std_intensity',
                                  mask=patient.get_image(self.ref_t).masks[
                                      'supervoxels'].data)

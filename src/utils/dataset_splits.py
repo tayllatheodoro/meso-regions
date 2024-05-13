@@ -8,23 +8,24 @@ from sklearn.model_selection import train_test_split
 # 'subclass'
 
 
-path_classes = Path("/data_lids/home/taylla/PycharmProjects/meso/data"
-                    "/classes_subclasses_nodular_datasetsplit.csv")
+path_classes = Path("/data_lids/home/taylla/PycharmProjects/meso/data/"
+                    "classes_subclasses_nodular_datasetsplit.csv")
 path_splits = Path("/data_lids/home/taylla/PycharmProjects/meso/data/splits")
 os.makedirs(path_splits, exist_ok=True)
 df = pd.read_csv(path_classes)
 
-ids = df['ID'].tolist()
-index_of_106 = ids.index(106)
-index_of_311 = ids.index(311)
-df = df.drop(index_of_106)
-df = df.drop(index_of_311)
+
+# drop the ID: 106 and 311
+df = df.drop(df[df['ID'] == 106].index)
+df = df.drop(df[df['ID'] == 311].index)
+
+#
 ## Split off the test set first
-train, test = train_test_split(df, test_size=0.2, stratify=df['SUBCLASS'])
+train, test = train_test_split(df, test_size=0.4, stratify=df['SUBCLASS'])
 
 # Save the test set
-test.to_csv(path_splits / "test_set_subclasses_2.csv", index=False)
-train.to_csv(path_splits / "training_set_subclasses_2.csv", index=False)
+test.to_csv(path_splits / "test_set_subclass_4.csv", index=False)
+train.to_csv(path_splits / "train_set_subclass_4.csv", index=False)
 
 # # Function to create and save three different stratified splits for training
 # # and validation
