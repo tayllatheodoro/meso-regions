@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
@@ -12,54 +14,85 @@ path_classes = Path("/data_lids/home/taylla/PycharmProjects/meso/data"
 path_images = Path("/data_lids/home/taylla/PycharmProjects/meso/data/resample"
                    "/images_orig_reg")
 path_output = Path("/data_lids/home/taylla/PycharmProjects/meso/output"
-                   "/HyperparameterTuning/No_P_masks/DISF")
+                   "/exp_dilatation_P")
 
-path_masks_dilated = Path("/data_lids/home/taylla/PycharmProjects/meso/output/"
-                          "/HyperparameterTuning/Dilation")
+path_masks_dilated = Path(
+    "/data_lids/home/taylla/PycharmProjects/meso/data/orig/dilation_patient")
 
 path_splits = Path("/data_lids/home/taylla/PycharmProjects/meso/data/splits")
 
 list_masks_dilated = os.listdir(path_masks_dilated)
 
-# ids_train = list(sorted(
-#     (pd.read_csv(path_splits / "training_set_classes_4.csv")["ID"]).to_list()))
-ids_test = list(sorted(
-    (pd.read_csv(path_splits / "test_set_classes_4.csv")["ID"]).to_list()))
-threads = min(os.cpu_count(), len(ids_test))
+for s in os.listdir(path_splits):
+    s_n = s.split('_')[-1].split('.')[0]
+    mode = s.split('_')[0]
 
-metrics_all = {}
+    ids = list(sorted(
+        (pd.read_csv(path_splits / s)["ID"]).to_list()))
+    threads = min(os.cpu_count(), len(ids))
 
-p_seeds = [0.001, 0.005, 0.01, 0.05]
-for mask in tqdm(list_masks_dilated, desc="Masks"):
-    path_masks = path_masks_dilated / mask / 'Dilate/'
-    metrics_mask = {}
+    p_seeds = [0.0001, 0.0003, 0.0005, 0.0007, 0.001, 0.003, 0.005, 0.007, 0.01,
+                0.03, 0.05, 0.07, 0.1]
+    # p_seeds = np.arange(0.0001, 0.10001, 0.0001)
+    # for mask in tqdm(list_masks_dilated, desc="Masks"):
+    if True:
+        mask = 'dilated_patient'
+        path_masks = path_masks_dilated
+        metrics_mask = {}
 
-    for n_final in tqdm(range(0, 800, 50), desc="N_Segments"):
+        for n_final in tqdm(range(0, 800, 50), desc="N_Segments"):
 
-        if n_final == 0:
-            for p_seeds_final in tqdm(p_seeds, desc="P_final_Seeds"):
+            if n_final == 0:
+                for p_seeds_final in tqdm(p_seeds, desc="P_final_Seeds"):
+                    # Define configuration
+                    config_disf = define_config_disf(
+                        ref_t=270,
+                        n_init=n_final * 10,
+                        n_final=n_final,
+                        p_seeds_init=p_seeds_final * 10,
+                        p_seeds_final=p_seeds_final,
+                        ift_path='/data_lids/home/taylla/ift')
+                    config_superspels = define_config_superspels(ref_t=270)
+                    config_ece = define_config_ece(ref_t=270)
+                    config = [config_disf, config_superspels, config_ece]
+                    experiment_name = f"{p_seeds_final}"
+
+                    experiment = Experiment(
+                        path_masks=path_masks,
+                        ids=ids,
+                        path_classes=path_classes,
+                        path_images=path_images,
+                        path_experiments=path_output / mask / 'DISF' / f'split_{s_n}' / mode,
+                        experiment_name=experiment_name,
+                        config=config,
+                        threads=threads)
+                    exp = experiment.execute_pipeline()
+                    metrics_exp = experiment.classifier_metrics()
+                    print(metrics_exp)
+
+                    metrics_mask[
+                        f'{p_seeds_final}'] = metrics_exp
+            else:
+
                 # Define configuration
                 config_disf = define_config_disf(
                     ref_t=270,
                     n_init=n_final * 10,
                     n_final=n_final,
-                    p_seeds_init=p_seeds_final * 10,
-                    p_seeds_final=p_seeds_final,
+                    p_seeds_init=0,
+                    p_seeds_final=0,
                     ift_path='/data_lids/home/taylla/ift')
-                config_superspels = define_config_superspels(ref_t=270,
-                                                             domain='REG')
-                config_ece = define_config_ece(ref_t=270,
-                                               domain='REG')
+                config_superspels = define_config_superspels(ref_t=270)
+                config_ece = define_config_ece(ref_t=270)
                 config = [config_disf, config_superspels, config_ece]
-                experiment_name = (f"{mask}/{n_final}_"
-                                   f"{p_seeds_final}")
+                experiment_name = f"{n_final}"
 
                 experiment = Experiment(
                     path_masks=path_masks,
-                    ids=ids_test,
+                    ids=ids,
                     path_classes=path_classes,
                     path_images=path_images,
-                    path_experiments=path_output / "test",
+                    path_experiments=path_output / mask / 'DISF' / f'split_{s_n}' / mode,
                     experiment_name=experiment_name,
                     config=config,
                     threads=threads)
@@ -67,49 +100,8 @@ for mask in tqdm(list_masks_dilated, desc="Masks"):
                 metrics_exp = experiment.classifier_metrics()
                 print(metrics_exp)
 
-                metrics_all[
-                    f'{mask}_{0}_{p_seeds_final}'] = metrics_exp
-                metrics_mask[
-                    f'{mask}_{0}_{p_seeds_final}'] = metrics_exp
-        else:
+                metrics_mask[f'{n_final}'] = metrics_exp
 
-            # Define configuration
-            config_disf = define_config_disf(
-                ref_t=270,
-                n_init=n_final * 10,
-                n_final=n_final,
-                p_seeds_init=0,
-                p_seeds_final=0,
-                ift_path='/data_lids/home/taylla/ift')
-            config_superspels = define_config_superspels(ref_t=270,
-                                                         domain='REG')
-            config_ece = define_config_ece(ref_t=270,
-                                           domain='REG')
-            config = [config_disf, config_superspels, config_ece]
-            experiment_name = (f"{mask}/{n_final}_"
-                               f"{0}")
-
-            experiment = Experiment(
-                path_masks=path_masks,
-                ids=ids_test,
-                path_classes=path_classes,
-                path_images=path_images,
-                path_experiments=path_output / "test",
-                experiment_name=experiment_name,
-                config=config,
-                threads=threads)
-            exp = experiment.execute_pipeline()
-            metrics_exp = experiment.classifier_metrics()
-            print(metrics_exp)
-
-            metrics_all[
-                f'{mask}_{n_final}_{0}'] = metrics_exp
-            metrics_mask[
-                f'{n_final}_{0}'] = metrics_exp
-
-    df_metrics_mask = pd.DataFrame(metrics_mask)
-    df_metrics_mask.to_csv(path_output / f"metrics_{mask}_exp.csv")
-
-df_metrics = pd.DataFrame(metrics_all)
-df_metrics.to_csv(path_output / f"metrics_all_exp.csv")
-
+        df_metrics_mask = pd.DataFrame(metrics_mask)
+        df_metrics_mask.to_csv(
+            path_output / mask / 'DISF' / f'split_{s_n}' / mode / f"metrics_{mask}_disf_{mode}.csv")

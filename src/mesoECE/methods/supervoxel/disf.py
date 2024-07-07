@@ -58,6 +58,8 @@ class DISF(AbstractMethod):
                 "Error at iftDISF. Please compile the program iftDISF")
             exit(-1)
 
+
+
     def calculate_seeds(self, patient: Patient):
         """Calculate initial and final seeds based on volume."""
         n_seeds_init = self.n_init

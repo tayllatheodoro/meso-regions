@@ -44,6 +44,7 @@ class SLIC(AbstractMethod):
                                     start_label=1)
             # Save supervoxels mask
 
+
             save_nii_mask(patient=patient,
                           path=self.path_supervoxels,
                           mask=supervoxels_mask)

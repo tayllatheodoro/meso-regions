@@ -23,6 +23,24 @@ import src.mesoECE.methods.classifier as classifier_module
 from src.mesoECE.data_structure import MesoDataset
 
 
+def correct_classification_rate(tn, fn, tp):
+    """
+    Calculate the Correct Classification Rate.
+
+    Parameters:
+    y_true (list or array): True labels
+    y_pred (list or array): Predicted labels
+
+    Returns:
+    float: Correct Classification Rate
+    """
+
+    # Calculate Correct Classification Rate
+    if tp + tn + fn == 0:
+        return 0  # To handle division by zero
+    return (tp + tn) / (tp + tn + fn)
+
+
 class Experiment:
     def __init__(self,
                  experiment_name: str,
@@ -44,7 +62,7 @@ class Experiment:
 
         self.instantiate_experiment()
 
-        masks_list = os.listdir(path_masks)
+        # masks_list = os.listdir(path_masks)
         # masks_dir = None
         # if len(masks_list) > 1:
         #     for mask in masks_list:
@@ -170,6 +188,8 @@ class Experiment:
             supervoxel = "SLIC"
         elif 'DISF' in self.results:
             supervoxel = "DISF"
+        elif 'HSLIC' in self.results:
+            supervoxel = "HSLIC"
 
         df = pd.DataFrame(self.results[supervoxel],
                           columns=['IDs', 'INITIAL_SEEDS', 'FINAL_SEEDS'])
@@ -206,14 +226,19 @@ class Experiment:
         tn, fp, fn, tp = metrics.confusion_matrix(y, y_pred).ravel()
         if (tp + fp) > 0:
             metrics_exp['PPV'] = tp / (tp + fp)
-        elif (tn + fn) > 0:
+        else:
+            metrics_exp['PPV'] = 0
+        if (tn + fn) > 0:
             metrics_exp['NPV'] = tn / (tn + fn)
+        else:
+            metrics_exp['NPV'] = 0
         metrics_exp['FP'] = fp
         metrics_exp['FN'] = fn
         metrics_exp['TN'] = tn
         metrics_exp['TP'] = tp
         metrics_exp['FP_ID'] = ids_fp
         metrics_exp['FN_ID'] = ids_fn
+        metrics_exp['CCR'] = correct_classification_rate(tn, fn, tp)
 
         # roc_display = metrics.RocCurveDisplay.from_predictions(y, y_pred)
         # roc_display.plot()
