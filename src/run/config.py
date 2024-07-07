@@ -154,6 +154,29 @@ def define_config_slic(n_segments, compactness, p_seeds_final,ref_t=270):
     return config_slic
 
 
+def define_config_hslic(n_segments, n_segments_h, compactness, p_seeds_final,
+                         ref_t=270):
+    """Define configuration for SLIC_H method.
+
+    Args:
+        -ref_t          Reference time point.
+        -n_segments     Number of segments.
+        -n_segments_h   Number of segments for the H-SLIC.
+        -compactness    Compactness parameter.
+        -p_seeds_final  Percentage of seeds.
+    Returns:
+        -config_slic_h    Configuration dictionary for SLIC_H method.
+    """
+    config_hslic = {
+        "module": "supervoxel",
+        "method": "HSLIC",
+        "args": {"ref_t": ref_t, "n_segments": n_segments,
+                 "n_segments_h": n_segments_h, "compactness": compactness,
+                 "p_seeds_final": p_seeds_final}
+    }
+    return config_hslic
+
+
 def define_config_disf(n_init, n_final, p_seeds_init, p_seeds_final,ref_t =270,
                        ift_path: str = '/data_lids/home/taylla/ift'):
     """Define configuration for DISF method.
