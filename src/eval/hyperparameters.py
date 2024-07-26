@@ -4,11 +4,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import confusion_matrix
 
 path_exp = Path(
     "/data_lids/home/taylla/PycharmProjects/meso/output/HyperparameterTuning/exp")
 mask = os.listdir(path_exp)
-method = 'SLIC'
+method = 'DISF'
 
 
 def clean_csv(data, sentinel=['TN', 'TP']):
@@ -31,7 +32,8 @@ def clean_csv(data, sentinel=['TN', 'TP']):
 def best_hyperparameters(data, metrics=None):
     # Find the best hyperparameters
     if metrics is None:
-        metrics = ['AUC', 'acc', 'balanced_acc', 'f1_score', 'Sensitivity', 'Specificity']
+        metrics = ['AUC', 'acc', 'balanced_acc', 'f1_score', 'Sensitivity',
+                   'Specificity','Correct_Classification_Rate']
     best_metrics = {}
     for metric in metrics:
         best_col = data.loc[metric].idxmax()
@@ -49,7 +51,6 @@ def best_hyperparameters(data, metrics=None):
 # # Print the summary statistics
 # print(summary_statistics)
 for m in mask:
-
     path_mask = path_exp / m
     path_train = path_mask / method / 'split_class' / 'train'
     df = pd.read_csv(path_train / f"metrics_{m}_{method.lower()}_train.csv",
@@ -58,4 +59,4 @@ for m in mask:
     dict_metrics = best_hyperparameters(df)
     df_best_metrics = pd.DataFrame(dict_metrics)
     df_best_metrics.to_csv(
-        path_train / f"best_metrics_{m}_{method.lower()}_train.csv")
+        path_train / f"best_metrics_ccr_{m}_{method.lower()}_train.csv")

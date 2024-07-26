@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 
 
 path_classes = Path("/data_lids/home/taylla/PycharmProjects/meso/data/"
-                    "classes_subclasses_nodular_datasetsplit.csv")
+                    "classes_subclasses_nodular_datasetsplit_meso_bape.csv")
 path_splits = Path("/data_lids/home/taylla/PycharmProjects/meso/data/splits")
 os.makedirs(path_splits, exist_ok=True)
 df = pd.read_csv(path_classes)
@@ -21,11 +21,11 @@ df = df.drop(df[df['ID'] == 311].index)
 
 #
 ## Split off the test set first
-train, test = train_test_split(df, test_size=0.4, stratify=df['SUBCLASS'])
+train, test = train_test_split(df, test_size=0.4, stratify=df['CLASS'])
 
 # Save the test set
-test.to_csv(path_splits / "test_set_subclass_4.csv", index=False)
-train.to_csv(path_splits / "train_set_subclass_4.csv", index=False)
+test.to_csv(path_splits / "test_set_class_4_meso_bape.csv", index=False)
+train.to_csv(path_splits / "train_set_class_4_meso_bape.csv", index=False)
 
 # # Function to create and save three different stratified splits for training
 # # and validation

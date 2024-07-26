@@ -31,7 +31,7 @@ def define_ants_reg(ref_t: int = 270, domain: str = None, **config):
     """
     config_ants_reg = {
         "module": "img_preprocess",
-        "method": "ANTsReg",
+        "method": "ANTs",
         "args": {"ref_t": ref_t, "domain": domain, "config": config}
     }
     return config_ants_reg

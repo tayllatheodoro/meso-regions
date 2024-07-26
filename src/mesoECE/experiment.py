@@ -156,6 +156,7 @@ class Experiment:
             if method.result() is not None:
                 self.results[method.__class__.__name__] = method.result()
 
+
         self.result_classifier()
         self.results_seeds()
         self.classifier_metrics()
@@ -220,10 +221,17 @@ class Experiment:
                                                                          y_pred)
         metrics_exp['f1_score'] = metrics.f1_score(y, y_pred)
         metrics_exp['AUC'] = metrics.roc_auc_score(y, y_pred)
-        metrics_exp['Sensitivity'] = metrics.recall_score(y, y_pred)
-        metrics_exp['Specificity'] = metrics.precision_score(y, y_pred)
+
 
         tn, fp, fn, tp = metrics.confusion_matrix(y, y_pred).ravel()
+        if (tp + fn) > 0:
+            metrics_exp['Sensitivity'] = tp / (tp + fn)
+        else:
+            metrics_exp['Sensitivity'] = 0
+        if (tn + fp) > 0:
+            metrics_exp['Specificity'] = tn / (tn + fp)
+        else:
+            metrics_exp['Specificity'] = 0
         if (tp + fp) > 0:
             metrics_exp['PPV'] = tp / (tp + fp)
         else:
@@ -238,7 +246,6 @@ class Experiment:
         metrics_exp['TP'] = tp
         metrics_exp['FP_ID'] = ids_fp
         metrics_exp['FN_ID'] = ids_fn
-        metrics_exp['CCR'] = correct_classification_rate(tn, fn, tp)
 
         # roc_display = metrics.RocCurveDisplay.from_predictions(y, y_pred)
         # roc_display.plot()

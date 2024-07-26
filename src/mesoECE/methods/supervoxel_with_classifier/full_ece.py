@@ -1,27 +1,21 @@
 import numpy as np
-import os
-
 import skimage.measure
-
 from scipy.ndimage import uniform_filter
 from pathlib import Path
 
 from src.mesoECE.data_structure.patient import Patient
 from src.mesoECE.methods import AbstractMethod
 from src.mesoECE.methods.superspels.utils import (plot_curves,
-                                                  save_superspels_masks,
                                                   save_curves_and_interp_to_csv,
-                                                  define_mean_intensity_curves)
-from src.mesoECE.methods.utils import (define_masks_volume,
-                                       correct_image_background,
-                                       correct_images_background)
+                                                  define_mean_std_intensity_curves)
+from src.mesoECE.methods.utils import (define_masks_volume, setup_directories)
+import nibabel as nib
 
 
 class FullECE(AbstractMethod):
     def __init__(self, path: Path, ref_t: int, filter_size: int = 5,
                  with_mask: bool = True):
         super().__init__()
-        self.domain = None
         self.thread_safe = True
         self.predicted_diagnosis = []
         self.path_ece = path
@@ -31,15 +25,10 @@ class FullECE(AbstractMethod):
 
     def apply(self, patient: Patient, **kwargs):
         try:
-            path_m_images = self.path_ece / 'ece_images'
-            path_b_images = self.path_ece / 'benign_images'
-            path_plot = self.path_ece / 'plots'
-            path_df = self.path_ece / 'curves_df'
-
-            os.makedirs(path_m_images, exist_ok=True)
-            os.makedirs(path_b_images, exist_ok=True)
-            os.makedirs(path_df, exist_ok=True)
-            os.makedirs(path_plot, exist_ok=True)
+            setup_directories(self.path_ece, ['ece_images',
+                                              'benign_images',
+                                              'plots',
+                                              'curves_df'])
 
             # Calculate the volume of the pleural mask
             pleural_mask = patient.get_image(self.ref_t).masks[
@@ -47,8 +36,6 @@ class FullECE(AbstractMethod):
             pleural_vol = define_masks_volume(mask=pleural_mask)
 
             nifti_args = patient.get_image(self.ref_t).nifti_props
-
-
 
             # Apply mean filter to simulate mean of superspels
             images = self.define_images_filtered(
@@ -76,26 +63,26 @@ class FullECE(AbstractMethod):
                      patient.subclass_diagnosis, patient.nodular,
                      ece_vol, ece_vol])
 
-                # ece_curves = self.define_ece_curves(patient,
-                #                                     ece_labeled_mask)
-                #
-                # save_curves_and_interp_to_csv(patient=patient,
-                #                               curves=ece_curves,
-                #                               path=path_df,
-                #                               curve_name='ece')
-                # plot_curves(curve=ece_curves,
-                #             mask=ece_labeled_mask,
-                #             time_points=patient.time_points,
-                #             filename=str(path_plot /
-                #                          f'ece_{patient.id}.png'),
-                #             mean_plot=True)
-                #
-                # save_superspels_masks(mask=ece_labeled_mask,
-                #                       nifti_args=nifti_args,
-                #                       patient=patient,
-                #                       domain=self.domain,
-                #                       ref_t=self.ref_t,
-                #                       path=path_m_images)
+                ece_curves = self.define_ece_curves(patient,
+                                                    ece_labeled_mask)
+
+                save_curves_and_interp_to_csv(patient=patient,
+                                              curves=ece_curves,
+                                              path=self.path_ece / 'curves_df',
+                                              curve_name='ece')
+                plot_curves(curve=ece_curves,
+                            mask=ece_labeled_mask,
+                            time_points=patient.time_points,
+                            filename=str(self.path_ece / 'plots' /
+                                         f'ece_{patient.id}'),
+                            mean_plot=True)
+
+                nib.save(nib.Nifti1Image(benign_labeled_mask.astype(np.int32),
+                                         **nifti_args),
+                         str(self.path_ece / 'ece_images' / patient.get_image(
+                             self.ref_t).filename))
+
+
 
             else:
                 self.predicted_diagnosis.append(
@@ -103,30 +90,28 @@ class FullECE(AbstractMethod):
                      patient.subclass_diagnosis, patient.nodular,
                      ece_vol, ece_vol])
 
-            # benign_curves = define_mean_intensity_curves(
-            #     patient=patient,
-            #     mask=benign_labeled_mask,
-            #     domain=self.domain)
-            # save_curves_and_interp_to_csv(patient=patient,
-            #                               curves=benign_curves,
-            #                               path=path_df,
-            #                               curve_name='benign')
-            # plot_curves(curve=benign_curves,
-            #             mask=benign_labeled_mask,
-            #             time_points=patient.time_points,
-            #             filename=str(path_plot /
-            #                          f'benign_{patient.id}.png'),
-            #             mean_plot=True)
-            #
-            # save_superspels_masks(mask=benign_labeled_mask,
-            #                       nifti_args=nifti_args,
-            #                       patient=patient,
-            #                       domain=self.domain,
-            #                       ref_t=self.ref_t,
-            #                       path=path_b_images)
+            benign_curves,std_benign_curves = define_mean_std_intensity_curves(
+                patient=patient,
+                mask=benign_labeled_mask)
+            save_curves_and_interp_to_csv(patient=patient,
+                                          curves=benign_curves,
+                                          path=self.path_ece / 'curves_df',
+                                          curve_name='benign')
+            plot_curves(curve=benign_curves,
+                        mask=benign_labeled_mask,
+                        time_points=patient.time_points,
+                        filename=str(self.path_ece / 'plots' /
+                                     f'benign_{patient.id}'),
+                        mean_plot=True)
+
+            nib.save(nib.Nifti1Image(benign_labeled_mask.astype(np.int32),
+                                     **nifti_args),
+                     str(self.path_ece / 'benign_images' / patient.get_image(
+                         self.ref_t).filename))
 
             patient.path_masks['ece'] = self.path_ece
-        except:
+        except Exception as e:
+            print(e)
             print("Error in id: ", patient.id)
         new_patient = Patient(path=patient.path,
                               path_masks=patient.path_masks,

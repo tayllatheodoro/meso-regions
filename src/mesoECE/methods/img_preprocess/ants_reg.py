@@ -100,13 +100,12 @@ class ANTs(AbstractMethod):
                 ants.write_transform(tfm_inv,
                                      str(self.path_reg_tfms / tfm_inv_filename))
 
-        if self.domain == 'REG':
-            new_patient = Patient(path=self.path_reg_images,
-                                  path_masks=patient.path_masks,
-                                  id=patient.id,
-                                  diagnosis=patient.diagnosis,
-                                  subclass_diagnosis=patient.subclass_diagnosis,
-                                  nodular=patient.nodular)
+        new_patient = Patient(path=self.path_reg_images,
+                              path_masks=patient.path_masks,
+                              id=patient.id,
+                              diagnosis=patient.diagnosis,
+                              subclass_diagnosis=patient.subclass_diagnosis,
+                              nodular=patient.nodular)
 
         return new_patient
 
