@@ -152,8 +152,9 @@ def cmd_report(args):
         image_path=args.image, output_path=args.output,
         patient_id=args.patient_id, ece_mask_path=args.ece_mask,
         fluid_mask_path=args.fluid_mask, pleural_mask_path=args.pleural_mask,
-        curves_csv=args.curves, ece_curves_csv=args.ece_curves,
-        ref_t=args.ref_t, method=args.method)
+        supervoxels_path=args.supervoxels, curves_csv=args.curves,
+        ece_curves_csv=args.ece_curves, ref_t=args.ref_t, method=args.method,
+        scroll_plane=args.scroll_plane, no_scroll=args.no_scroll)
     print(f"report written: {out}")
     return 0
 
@@ -183,10 +184,18 @@ def main(argv=None):
     rep_p.add_argument("--ece-mask", help="ECE-positive mask NIfTI")
     rep_p.add_argument("--fluid-mask", help="pleural fluid mask NIfTI")
     rep_p.add_argument("--pleural-mask", help="pleural-region mask NIfTI")
+    rep_p.add_argument("--supervoxels",
+                       help="supervoxel partition label-map NIfTI "
+                            "(rendered one color per region)")
     rep_p.add_argument("--curves", help="mean-intensity curves CSV")
     rep_p.add_argument("--ece-curves", help="ECE-positive curves CSV")
     rep_p.add_argument("--ref-t", type=int, default=270)
     rep_p.add_argument("--method", default="", help="label, e.g. DISF or SLIC")
+    rep_p.add_argument("--scroll-plane", default="coronal",
+                       choices=["axial", "coronal", "sagittal"],
+                       help="plane for the slice slider (default: coronal)")
+    rep_p.add_argument("--no-scroll", action="store_true",
+                       help="skip the slice slider (smaller file)")
     rep_p.add_argument("-o", "--output", required=True, help="output .html")
 
     args = parser.parse_args(argv)

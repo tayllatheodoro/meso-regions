@@ -3,6 +3,14 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.4.0] — 2026-08-17
+
+### Added
+- Report: per-region colors for label-map layers (supervoxels, ECE regions) and a new
+  `--supervoxels` layer option
+- Report: interactive slice slider (`--scroll-plane`, mouse-wheel support, capped at 72
+  pre-rendered frames; `--no-scroll` to omit) — still a single self-contained file
+
 ## [0.3.0] — 2026-08-17
 
 ### Added

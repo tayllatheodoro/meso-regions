@@ -67,17 +67,23 @@ under `meso_regions/run/` for reference.
 
 ### Patient report (visualization)
 
-Generate a self-contained HTML report per patient — slice overlays, per-superspel
-signal-intensity curves with the ECE rule applied, and the patient-level call. Everything is
-embedded in one file: no install needed to view it, and no data leaves the machine.
+Generate a self-contained HTML report per patient — slice overlays (label-map layers such as
+supervoxels and ECE regions are drawn with one color per region), an interactive slice slider
+(drag or mouse-wheel), per-superspel signal-intensity curves with the ECE rule applied, and the
+patient-level call. Everything is embedded in one file: no install needed to view it, and no
+data leaves the machine.
 
 ```bash
 meso-regions report \
   --image patient_270s.nii.gz \
   --fluid-mask fluid.nii.gz --pleural-mask pleural_region.nii.gz \
-  --ece-mask ece_mask.nii.gz --curves mean_intensity.csv \
+  --supervoxels disf_labels.nii.gz --ece-mask ece_mask.nii.gz \
+  --curves mean_intensity.csv \
   --patient-id 116 --method DISF -o report_116.html
 ```
+
+Use `--scroll-plane axial|coronal|sagittal` to choose the slider plane and `--no-scroll` for a
+smaller file without the slider.
 
 ### Viewing outputs in existing tools
 
