@@ -1,0 +1,170 @@
+import numpy as np
+import skimage.measure
+from scipy.ndimage import uniform_filter
+from pathlib import Path
+
+from meso_regions.mesoECE.data_structure.patient import Patient
+from meso_regions.mesoECE.methods import AbstractMethod
+from meso_regions.mesoECE.methods.superspels.utils import (plot_curves,
+                                                  save_curves_and_interp_to_csv,
+                                                  define_mean_std_intensity_curves)
+from meso_regions.mesoECE.methods.utils import (define_masks_volume, setup_directories)
+import nibabel as nib
+
+
+class FullECE(AbstractMethod):
+    def __init__(self, path: Path, ref_t: int, filter_size: int = 5,
+                 with_mask: bool = True):
+        super().__init__()
+        self.thread_safe = True
+        self.predicted_diagnosis = []
+        self.path_ece = path
+        self.ref_t = ref_t
+        self.filter_size = filter_size
+        self.with_mask = with_mask
+
+    def apply(self, patient: Patient, **kwargs):
+        try:
+            setup_directories(self.path_ece, ['ece_images',
+                                              'benign_images',
+                                              'plots',
+                                              'curves_df'])
+
+            # Calculate the volume of the pleural mask
+            pleural_mask = patient.get_image(self.ref_t).masks[
+                "pleural_region"].data.astype(np.int32)
+            pleural_vol = define_masks_volume(mask=pleural_mask)
+
+            nifti_args = patient.get_image(self.ref_t).nifti_props
+
+            # Apply mean filter to simulate mean of superspels
+            images = self.define_images_filtered(
+                patient=patient,
+                pleural_mask=pleural_mask)
+
+            # Define mask with superspels with ece pattern
+            # and benign masks
+            ece_mask, benign_mask = self.define_ece_mask(patient, images)
+
+            # label the masks
+            ece_labeled_mask = skimage.measure.label(ece_mask)
+            benign_labeled_mask = skimage.measure.label(benign_mask)
+
+            # Calculate the volume of the ECE mask
+            ece_vol = define_masks_volume(mask=ece_mask)
+
+            # if there are superspels with ece pattern and the volume of the
+            # ece mask is greater than 0.01% of the pleural mask volume to
+            # reduce false positives
+
+            if ece_vol > pleural_vol * 0.0001:
+                self.predicted_diagnosis.append(
+                    [patient.id, patient.diagnosis, 1,
+                     patient.subclass_diagnosis, patient.nodular,
+                     ece_vol, ece_vol])
+
+                ece_curves = self.define_ece_curves(patient,
+                                                    ece_labeled_mask)
+
+                save_curves_and_interp_to_csv(patient=patient,
+                                              curves=ece_curves,
+                                              path=self.path_ece / 'curves_df',
+                                              curve_name='ece')
+                plot_curves(curve=ece_curves,
+                            mask=ece_labeled_mask,
+                            time_points=patient.time_points,
+                            filename=str(self.path_ece / 'plots' /
+                                         f'ece_{patient.id}'),
+                            mean_plot=True)
+
+                nib.save(nib.Nifti1Image(benign_labeled_mask.astype(np.int32),
+                                         **nifti_args),
+                         str(self.path_ece / 'ece_images' / patient.get_image(
+                             self.ref_t).filename))
+
+
+
+            else:
+                self.predicted_diagnosis.append(
+                    [patient.id, patient.diagnosis, 0,
+                     patient.subclass_diagnosis, patient.nodular,
+                     ece_vol, ece_vol])
+
+            benign_curves,std_benign_curves = define_mean_std_intensity_curves(
+                patient=patient,
+                mask=benign_labeled_mask)
+            save_curves_and_interp_to_csv(patient=patient,
+                                          curves=benign_curves,
+                                          path=self.path_ece / 'curves_df',
+                                          curve_name='benign')
+            plot_curves(curve=benign_curves,
+                        mask=benign_labeled_mask,
+                        time_points=patient.time_points,
+                        filename=str(self.path_ece / 'plots' /
+                                     f'benign_{patient.id}'),
+                        mean_plot=True)
+
+            nib.save(nib.Nifti1Image(benign_labeled_mask.astype(np.int32),
+                                     **nifti_args),
+                     str(self.path_ece / 'benign_images' / patient.get_image(
+                         self.ref_t).filename))
+
+            patient.path_masks['ece'] = self.path_ece
+        except Exception as e:
+            print(e)
+            print("Error in id: ", patient.id)
+        new_patient = Patient(path=patient.path,
+                              path_masks=patient.path_masks,
+                              id=patient.id,
+                              diagnosis=patient.diagnosis,
+                              subclass_diagnosis=patient.subclass_diagnosis,
+                              nodular=patient.nodular)
+        return new_patient
+
+    def result(self):
+        return self.predicted_diagnosis
+
+    def define_images_filtered(self, patient, pleural_mask):
+        images = []
+        for t in patient.time_points:
+            # image mean filter using skitmage
+            img = patient.get_image(t).data
+            img_corrected = img - patient.background_otsu(t)
+            img_filtered = uniform_filter(
+                input=img_corrected,
+                size=self.filter_size)
+            if self.with_mask:
+                img_filtered[pleural_mask == 0] = 0
+            images.append(img_filtered)
+        return images
+
+    def define_ece_mask(self, patient, images):
+        ece_mask = np.ones_like(patient.get_image(self.ref_t).data)
+        peak_index = patient.time_points.index(270)
+        for i, t in enumerate(patient.time_points):
+            if i < peak_index:
+                ece_mask = np.logical_and(ece_mask, images[i] < images[i + 1])
+            elif i > peak_index:
+                ece_mask = np.logical_and(ece_mask, images[i] < images[i - 1])
+        benign_mask = np.logical_not(ece_mask)
+        return ece_mask, benign_mask
+
+    @staticmethod
+    def define_ece_curves(patient: Patient, ece_mask):
+
+        ece_mean_curve = np.zeros(ece_mask.max() + 1,
+                                  patient.time_points.__len__())
+
+        rps = skimage.measure.regionprops(ece_mask)
+        for rp in rps:
+            slice_bbox = tuple(
+                [slice(dim_start, dim_finish) for dim_start, dim_finish in
+                 zip(rp.bbox[:3], rp.bbox[3:])])
+            lbl_in_bbox = rp.image
+
+            for t in patient.time_points:
+                img = patient.get_image(t).data
+                img_in_bbox = img[slice_bbox] - patient.background_otsu(t)
+                ece_mean_curve[rp.label, patient.time_points.index(t)] = \
+                    img_in_bbox[lbl_in_bbox > 0]
+        return ece_mean_curve

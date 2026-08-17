@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meso-regions"
+version = "0.1.0"
+description = "Automated 4D segmentation of Early Contrast Enhancement (ECE) biomarker regions in pleural DCE-MRI for pleural mesothelioma research"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Taylla M. Theodoro" },
+]
+keywords = ["DCE-MRI", "mesothelioma", "pleural", "segmentation", "supervoxel", "medical-imaging"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+  "numpy",
+  "pandas",
+  "scipy",
+  "nibabel",
+  "antspyx",
+  "scikit-image",
+  "scikit-learn",
+  "matplotlib",
+  "seaborn",
+  "tqdm",
+  "filelock",
+  "xgboost",
+]
+
+[project.urls]
+Repository = "https://github.com/tayllatheodoro/meso-regions"
+Paper = "https://github.com/tayllatheodoro/meso-regions#citation"
+
+[tool.setuptools.packages.find]
+include = ["meso_regions*"]
