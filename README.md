@@ -35,19 +35,21 @@ SLIC works out of the box via scikit-image.
 
 ## Usage
 
-The pipeline stages are driven by configuration dictionaries (`meso_regions/run/config.py`)
-and stage scripts under `meso_regions/run/`:
+The pipeline is driven by a YAML config through the `meso-regions` CLI:
 
 ```bash
-python -m meso_regions.run.run_reg        # motion correction
-python -m meso_regions.run.run_dilation   # pleural-region mask
-python -m meso_regions.run.run_slic       # SLIC superspels (or run_disf)
-python -m meso_regions.run.run_full_ece   # curves + ECE rule + metrics
+meso-regions stages                      # list available pipeline stages + options
+meso-regions example-config > config.yaml
+# edit config.yaml: paths, patient ids, pipeline stages
+meso-regions run -c config.yaml --dry-run   # validate without executing
+meso-regions run -c config.yaml
 ```
 
-Inputs are NIfTI volumes organised per patient and time point. See `meso_regions/run/config.py`
-for the expected directory layout and stage options. A single-command CLI is planned
-(see [ROADMAP](docs/ROADMAP.md)).
+A pipeline is an ordered list of stages (`resample`, `ants_reg`, `dilate`, `slic`, `disf`,
+`full_ece`, …); each stage's options map to the functions in `meso_regions/run/config.py`.
+Inputs are NIfTI volumes organised per patient and time point. Note: the `disf` stage's
+`ift_path` must point to your local libIFT build. The original research scripts remain
+under `meso_regions/run/` for reference.
 
 ## Data
 

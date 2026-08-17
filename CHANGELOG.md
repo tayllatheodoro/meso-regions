@@ -3,6 +3,14 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.2.0] — 2026-08-17
+
+### Added
+- `meso-regions` CLI (`meso_regions/cli.py`): `stages`, `example-config`, and
+  `run -c config.yaml [--dry-run]` — YAML-driven pipeline execution replacing the
+  hard-coded paths in the per-stage scripts
+- Console entry point and `pyyaml` dependency in `pyproject.toml`
+
 ## [0.1.0] — 2026-08-17
 
 First installable release of the research code behind the ISBI 2026 paper.
