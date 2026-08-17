@@ -65,6 +65,26 @@ Inputs are NIfTI volumes organised per patient and time point. Note: the `disf` 
 `ift_path` must point to your local libIFT build. The original research scripts remain
 under `meso_regions/run/` for reference.
 
+### Patient report (visualization)
+
+Generate a self-contained HTML report per patient — slice overlays, per-superspel
+signal-intensity curves with the ECE rule applied, and the patient-level call. Everything is
+embedded in one file: no install needed to view it, and no data leaves the machine.
+
+```bash
+meso-regions report \
+  --image patient_270s.nii.gz \
+  --fluid-mask fluid.nii.gz --pleural-mask pleural_region.nii.gz \
+  --ece-mask ece_mask.nii.gz --curves mean_intensity.csv \
+  --patient-id 116 --method DISF -o report_116.html
+```
+
+### Viewing outputs in existing tools
+
+All masks are standard NIfTI, so they load directly as segmentation overlays in
+[3D Slicer](https://www.slicer.org) or [ITK-SNAP](http://www.itksnap.org): open the reference
+volume, then add the ECE / pleural-region mask as a segmentation/overlay layer.
+
 ## Data
 
 The imaging dataset used in the papers is governed by the PREDICT-Meso network. Researchers can

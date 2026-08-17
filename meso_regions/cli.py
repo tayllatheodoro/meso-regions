@@ -146,6 +146,18 @@ def cmd_run(args):
     return 0
 
 
+def cmd_report(args):
+    from meso_regions.report import generate_report
+    out = generate_report(
+        image_path=args.image, output_path=args.output,
+        patient_id=args.patient_id, ece_mask_path=args.ece_mask,
+        fluid_mask_path=args.fluid_mask, pleural_mask_path=args.pleural_mask,
+        curves_csv=args.curves, ece_curves_csv=args.ece_curves,
+        ref_t=args.ref_t, method=args.method)
+    print(f"report written: {out}")
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="meso-regions",
@@ -163,10 +175,25 @@ def main(argv=None):
                        help="validate and print the resolved configuration "
                             "without executing")
 
+    rep_p = sub.add_parser(
+        "report", help="generate a self-contained HTML report for one patient")
+    rep_p.add_argument("--image", required=True,
+                       help="reference NIfTI volume (e.g. the 270-s scan)")
+    rep_p.add_argument("--patient-id", default="unknown")
+    rep_p.add_argument("--ece-mask", help="ECE-positive mask NIfTI")
+    rep_p.add_argument("--fluid-mask", help="pleural fluid mask NIfTI")
+    rep_p.add_argument("--pleural-mask", help="pleural-region mask NIfTI")
+    rep_p.add_argument("--curves", help="mean-intensity curves CSV")
+    rep_p.add_argument("--ece-curves", help="ECE-positive curves CSV")
+    rep_p.add_argument("--ref-t", type=int, default=270)
+    rep_p.add_argument("--method", default="", help="label, e.g. DISF or SLIC")
+    rep_p.add_argument("-o", "--output", required=True, help="output .html")
+
     args = parser.parse_args(argv)
     return {"stages": cmd_stages,
             "example-config": cmd_example_config,
-            "run": cmd_run}[args.command](args)
+            "run": cmd_run,
+            "report": cmd_report}[args.command](args)
 
 
 if __name__ == "__main__":

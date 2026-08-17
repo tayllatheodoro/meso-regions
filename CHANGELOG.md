@@ -3,6 +3,16 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.3.0] — 2026-08-17
+
+### Added
+- `meso-regions report` — self-contained HTML patient report (`meso_regions/report.py`):
+  axial/coronal/sagittal overlays of fluid / pleural-region / ECE masks, per-superspel
+  signal-intensity curves classified in-place by the published ECE rule, mask volume table,
+  patient-level ECE call, and research-use disclaimer. Single file, no external assets,
+  no data upload.
+- README: report usage and how to view outputs in 3D Slicer / ITK-SNAP
+
 ## [0.2.0] — 2026-08-17
 
 ### Added
