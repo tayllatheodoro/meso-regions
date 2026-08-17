@@ -18,6 +18,20 @@ manual ROI placement:
    minimum pre-contrast, and rises monotonically to the peak then falls; a patient is called
    malignant if any superspel is ECE-positive.
 
+![Meso-Regions pipeline overview](docs/figures/overview.png)
+*Pipeline overview — input DCE-MRI, registration, pleural-region mask generation, per-superspel
+intensity descriptors, and ECE-rule classification. Figure from Theodoro et al., IEEE ISBI 2026
+(© 2026 IEEE).*
+
+![Representative workflow on one patient](docs/figures/figure_workflow_patient116.png)
+*Representative coronal workflow at 270 s post-contrast: native image, segmented pleural
+effusion, derived pleural-region mask, DISF supervoxels, and ECE-positive output (panels D–E
+from Theodoro et al., IEEE ISBI 2026, © 2026 IEEE).*
+
+![Intensity curves by histology](docs/figures/curve_shape_malignant_vs_benign.png)
+*Patient-mean peak-normalised signal-intensity curves stratified by histology (shaded bands:
+SEM), for SLIC and DISF partitions.*
+
 > ⚠️ **Research use only.** This software is not a medical device and must not be used for
 > clinical diagnosis or treatment decisions.
 
@@ -59,16 +73,44 @@ pleural-effusion ground-truth masks are released alongside the journal paper.
 
 ## Citation
 
-If you use this software, please cite:
+If you use this software, please cite the ISBI 2026 paper:
 
 > Theodoro TM, Silva IF, Tsim S, Blyth K, Falcão AX. *Meso-Regions: 4D segmentation of early
 > contrast enhancement biomarkers for pleural mesothelioma diagnosis.* Proc IEEE 23rd
 > International Symposium on Biomedical Imaging (ISBI), 2026.
 
+```bibtex
+@inproceedings{theodoro2026mesoregions,
+  author    = {Theodoro, Taylla M. and Silva, Ilan F. and Tsim, Selina and
+               Blyth, Kevin and Falc{\~a}o, Alexandre X.},
+  title     = {Meso-Regions: {4D} Segmentation of Early Contrast Enhancement
+               Biomarkers for Pleural Mesothelioma Diagnosis},
+  booktitle = {Proc. IEEE 23rd International Symposium on Biomedical Imaging (ISBI)},
+  year      = {2026},
+}
+```
+
+### Related publications
+
+The method was first presented at the 16th International Mesothelioma Interest Group (iMig)
+conference and covered in its imaging review:
+
+> Armato SG III, Katz SI, Frauenfelder T, Jayasekera G, Catino A, Blyth KG, Theodoro T,
+> Rousset P, Nackaerts K, Opitz I. *Imaging in pleural mesothelioma: a review of the 16th
+> international conference of the International Mesothelioma Interest Group.* Lung Cancer
+> 2024;193:107832.
+
 The ECE biomarker was originally described in:
 
-> Tsim S, et al. *Early contrast enhancement: a novel magnetic resonance imaging biomarker of
-> pleural malignancy.* Lung Cancer 2018;118:48–56.
+> Tsim S, Humphreys CA, Cowell GW, Stobo DB, Noble C, Woodward R, Kelly CA, Alexander L,
+> Foster JE, Dick C, Blyth KG. *Early contrast enhancement: a novel magnetic resonance imaging
+> biomarker of pleural malignancy.* Lung Cancer 2018;118:48–56.
+
+Extended methodology in the master's dissertation:
+
+> Theodoro TM. *Towards Automatic Detection of Pleural Mesothelioma Biomarker in 4D Dynamic
+> MR Imaging.* MSc dissertation, Institute of Computing, University of Campinas (UNICAMP).
+> https://github.com/tayllatheodoro/meso-master-thesis
 
 ## License
 
