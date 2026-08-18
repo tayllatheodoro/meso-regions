@@ -40,6 +40,22 @@ Swap-in replacements to evaluate, one at a time, against the baseline:
 - **Classifier**: learned patient-level model over superspel features vs the rule — only with
   proper nested validation given n=56
 
+## Phase 3.5 — cohort-level "superspel atlas" (idea from nd-embedding-atlas)
+
+[nd-embedding-atlas](https://github.com/czbiohub-sf/nd-embedding-atlas) (CZ Biohub SF) browses
+n-dimensional (TCZYX) microscopy images with precomputed embeddings — linked scatter plot ↔
+image gallery ↔ annotation panel, all local. The same pattern fits this project at cohort scale:
+
+- **Export superspels as AnnData Zarr**: one row per superspel (all 56 patients), with
+  (a) an embedding — curve-shape features now, radiomics features later — and
+  (b) a 4D image crop (T×Z×Y×X around the region), matching nd-embedding-atlas's input format.
+  A `meso-regions export-atlas` command could produce this directly.
+- **Browse the cohort in nd-embedding-atlas**: scatter of all superspels coloured by
+  histology / subclass / ECE call; click a cluster → see the underlying MRI regions.
+  Useful for understanding BAPE false positives and for the radiomics second pass.
+- **Annotation preset for expert review**: the pleura / non-pleura slice review (currently
+  manual) becomes an in-browser annotation workflow with exportable labels.
+
 ## Phase 4 — community & clinical usability
 
 - [ ] CLI stable, versioned releases on PyPI
