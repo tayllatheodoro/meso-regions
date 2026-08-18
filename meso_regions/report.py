@@ -48,18 +48,24 @@ def _slice2d(data, axis, idx):
     return np.rot90(data[tuple(sl)])
 
 
-def _label_rgba(m, base_color=None, alpha=0.45):
-    """RGBA overlay for a 2D mask slice. Integer label maps get one color per
-    region id (stable across slices); binary masks get `base_color`."""
+def region_color_map(mask_data):
+    """Stable region-id -> color mapping: i-th smallest label gets tab20(i)."""
+    labels = sorted(int(l) for l in np.unique(mask_data) if l > 0)
+    return {lab: _CMAP(i % 20)[:3] for i, lab in enumerate(labels)}
+
+
+def _label_rgba(m, base_color=None, color_map=None, alpha=0.45):
+    """RGBA overlay for a 2D mask slice. With `color_map`, each region id is
+    drawn in its mapped color (shared with the curves plot); otherwise the
+    whole mask gets `base_color`."""
     overlay = np.zeros((*m.shape, 4))
-    labels = np.unique(m)
-    labels = labels[labels > 0]
-    if base_color is not None and (len(labels) <= 1 or m.max() == 1):
+    if color_map:
+        # per-region layers use higher opacity so hues stay recognisable and
+        # match the curve colors
+        for lab, color in color_map.items():
+            overlay[m == lab] = (*color, 0.75)
+    elif base_color is not None:
         overlay[m > 0] = (*matplotlib.colors.to_rgb(base_color), alpha)
-        return overlay
-    for lab in labels:
-        color = _CMAP(int(lab) % 20)[:3]
-        overlay[m == lab] = (*color, alpha)
     return overlay
 
 
@@ -67,10 +73,9 @@ def _render_slice(image, layers, axis, idx, figsize=(4.6, 4.6), dpi=95):
     fig, ax = plt.subplots(figsize=figsize)
     ax.imshow(_slice2d(image, axis, idx), cmap="gray",
               interpolation="nearest")
-    for _, (data, color, per_region) in layers.items():
+    for _, (data, color, color_map) in layers.items():
         m = _slice2d(data, axis, idx)
-        ax.imshow(_label_rgba(m, None if per_region else color),
-                  interpolation="nearest")
+        ax.imshow(_label_rgba(m, color, color_map), interpolation="nearest")
     ax.axis("off")
     return _fig_to_b64(fig, dpi=dpi)
 
@@ -82,15 +87,15 @@ def _overlay_figure(image, layers):
         idx = _pick_slice(pick_from, axis)
         ax.imshow(_slice2d(image, axis, idx), cmap="gray",
                   interpolation="nearest")
-        for _, (data, color, per_region) in layers.items():
+        for _, (data, color, color_map) in layers.items():
             m = _slice2d(data, axis, idx)
-            ax.imshow(_label_rgba(m, None if per_region else color),
+            ax.imshow(_label_rgba(m, color, color_map),
                       interpolation="nearest")
         ax.set_title(f"{plane} (slice {idx})", fontsize=10)
         ax.axis("off")
     handles = [plt.Line2D([0], [0], marker="s", linestyle="", color=c or "k",
-                          label=(f"{l} (per-region colors)" if pr else l))
-               for l, (_, c, pr) in layers.items()]
+                          label=(f"{l} (one color per region)" if cm else l))
+               for l, (_, c, cm) in layers.items()]
     if handles:
         fig.legend(handles=handles, loc="lower center", ncol=len(handles),
                    frameon=False, fontsize=9)
@@ -156,21 +161,29 @@ def _is_ece_positive(t, y, ref_t):
             and np.all(np.diff(y[peak:]) <= 0))
 
 
-def _curves_figure(curves_df, ref_t):
+def _curves_figure(curves_df, ref_t, color_map=None):
+    """Curves plot; rule-positive curves are drawn in their region's color
+    (curve row index == region id in the ECE label map) and annotated with
+    the region id, so each curve can be matched to the overlays."""
     fig, ax = plt.subplots(figsize=(8, 4.5))
     t = [float(c) for c in curves_df.columns]
     n_ece = 0
-    for _, row in curves_df.iterrows():
+    for i, (_, row) in enumerate(curves_df.iterrows()):
         if _is_ece_positive(t, row.values, ref_t):
-            ax.plot(t, row.values, color="crimson", lw=1.4, zorder=2)
+            color = (color_map or {}).get(i, "crimson")
+            ax.plot(t, row.values, color=color, lw=1.6, zorder=2)
+            ax.annotate(str(i), (t[-1], row.values[-1]),
+                        xytext=(4, 0), textcoords="offset points",
+                        color=color, fontsize=7, va="center")
             n_ece += 1
         else:
             ax.plot(t, row.values, color="0.75", lw=0.8, zorder=1)
     ax.axvline(ref_t, color="0.4", ls="--", lw=1,
                label=f"{ref_t} s reference")
     ax.plot([], [], color="0.75", label=f"superspels (n={len(curves_df)})")
-    ax.plot([], [], color="crimson",
-            label=f"satisfy ECE rule (n={n_ece})")
+    ax.plot([], [], color="crimson" if not color_map else "0.2",
+            label=f"satisfy ECE rule (n={n_ece})"
+                  + (" — colors match regions" if color_map else ""))
     ax.set_xlabel("Time post-contrast (s)")
     ax.set_ylabel("Mean signal intensity")
     ax.legend(frameon=False, fontsize=9)
@@ -190,16 +203,19 @@ def generate_report(image_path, output_path, patient_id="unknown",
         image = image[..., 0]
     voxel_mm3 = float(abs(np.linalg.det(img_nii.affine[:3, :3])))
 
-    # label: (data, single_color or None, per_region_colors)
-    layers, stats = {}, []
-    for label, path, color, per_region in [
-            ("pleural fluid", fluid_mask_path, "gold", False),
-            ("pleural region", pleural_mask_path, "darkorange", False),
-            ("supervoxels", supervoxels_path, None, True),
-            ("ECE-positive regions", ece_mask_path, "crimson", True)]:
+    # label: (data, single_color, color_map) — only ECE gets per-region colors
+    layers, stats, ece_color_map = {}, [], None
+    for label, path, color in [
+            ("pleural fluid", fluid_mask_path, "gold"),
+            ("pleural region", pleural_mask_path, "darkorange"),
+            ("supervoxels", supervoxels_path, "steelblue"),
+            ("ECE-positive regions", ece_mask_path, "crimson")]:
         if path:
             data = np.asanyarray(nib.load(str(path)).dataobj)
-            layers[label] = (data, color, per_region)
+            color_map = None
+            if label == "ECE-positive regions":
+                ece_color_map = color_map = region_color_map(data)
+            layers[label] = (data, color, color_map)
             n_regions = len(np.unique(data)) - 1
             stats.append((label, n_regions,
                           round((data > 0).sum() * voxel_mm3 / 1000, 1)))
@@ -218,7 +234,7 @@ def generate_report(image_path, output_path, patient_id="unknown",
         curves_csv = ece_curves_csv
     if curves_csv:
         curves = pd.read_csv(curves_csv)
-        b64, n_ece = _curves_figure(curves, ref_t)
+        b64, n_ece = _curves_figure(curves, ref_t, ece_color_map)
         sections.append(("Signal-intensity curves",
                          f'<img src="data:image/png;base64,{b64}"/>'))
 

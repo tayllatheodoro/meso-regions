@@ -3,6 +3,14 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.4.1] — 2026-08-17
+
+### Changed
+- Report: per-region colors now only on ECE-positive regions (supervoxels back to a single
+  color); each rule-positive curve is drawn in its region's color and annotated with the
+  region id, so curves can be matched to the overlays (curve row index == region label)
+- Report: per-region layers rendered at higher opacity so hues match the curve colors
+
 ## [0.4.0] — 2026-08-17
 
 ### Added
