@@ -31,10 +31,20 @@ al., ISBI 2026 poster 1571238881 (mammographic skin thickness for IBC):**
    past its peak (with a max-thickness cap to reject enhancing blobs like vessels/heart).
 4. **Byproduct biomarker** — per-sector pleural THICKNESS map (pleural thickening is an
    established malignancy criterion on CT; an MRI thickness map is novel, interpretable output).
-5. **Validation** — coverage vs the published band, overlap with expert ECE regions, effect on
+5. **Anatomy-aware sectors (T.M.T., 2026-08-18)** — mesothelioma is usually unilateral and
+   thickening is predominantly costal (rib-adjacent), not mediastinal; the heart is a
+   high-flow FP source. Therefore: (a) process hemithoraces separately and use the
+   contralateral side as internal control (per-sector asymmetry score normalises scanner /
+   dose / physiology — analogous to IBC vs contralateral breast in Gallegos et al.);
+   (b) label sectors costal / diaphragmatic / mediastinal — costal carries diagnostic
+   weight, mediastinal down-weighted (not excluded: rare true cardiac-adjacent thickening
+   exists); (c) explicit heart + great-vessel exclusion mask from TotalSegmentator-MRI.
+6. **Validation** — coverage vs the published band, overlap with expert ECE regions, effect on
    the 3-split metrics; registration quality is an explicit dependency (subtraction).
 - [ ] Prototype on the ~31 patients with local native volumes + fluid masks
 - [ ] Adaptive per-sector extent replaces the fixed dilation radius entirely
+- [ ] Retro-check: are existing ECE false positives heart-adjacent? (TS heart mask vs
+      ECE-positive region locations — cheap and informative for the current paper's Discussion)
 
 ## Phase 3 — NEXT UP: clustering + radiomics with existing masks (paper 3)
 
