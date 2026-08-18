@@ -8,8 +8,10 @@ every upgrade below must be benchmarked against it on the same 3 data splits.
 
 - [x] Proper package layout (`meso_regions`), `pyproject.toml`, pinned dependencies
 - [x] README with pipeline overview, install, research-use-only disclaimer, citation
-- [ ] Single-command CLI (`meso-regions run --config config.yaml`) replacing per-stage scripts
-- [ ] Config file (YAML) instead of hard-coded paths in `run/config.py`
+- [x] Single-command CLI (`meso-regions run -c config.yaml`) — v0.2.0
+- [x] YAML config replacing hard-coded paths — v0.2.0
+- [x] DICOM→NIfTI ingestion (`meso-regions convert`) — v0.8.0
+- [x] HTML patient reports (v0.3–0.5), Gradio demo (v0.6), Claude skill (v0.8)
 - [ ] Smoke test on one synthetic/phantom patient + CI (GitHub Actions)
 - [ ] Document DISF/libIFT build steps or vendor a pip-installable binding
 
