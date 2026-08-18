@@ -45,8 +45,13 @@ al., ISBI 2026 poster 1571238881 (mammographic skin thickness for IBC):**
    the 3-split metrics; registration quality is an explicit dependency (subtraction).
 - [x] Single-patient prototype (325, BAPE): pleural signature confirmed, organ exclusion
       works, band covers both hemithoraces — see paper3_exploration/FINDINGS.md (2026-08-18)
-- [ ] Fine surface-patch sectors (~hundreds) to tighten extents off the cap
-- [ ] Batch the ~31 patients with local native volumes + fluid masks
+- [x] Expert-in-the-loop iteration (v2→v5, 2026-08-18) on patients 325 + 14: mm-unit organ
+      guards, inner-2-shell protection (diaphragmatic pleura), voxel enhancement gate,
+      adaptive extents 2–8 shells. Code: `meso_regions/experimental/dynamic_band.py`.
+- **DECISION (T.M.T., 2026-08-18): parked as an experimental tool option.** The paper and
+  current analyses use the published fixed-dilation masks; the dynamic band ships in the
+  repo as `meso_regions.experimental.dynamic_band` for future work.
+- [ ] Batch evaluation across the cohort (future work)
 - [ ] Adaptive per-sector extent replaces the fixed dilation radius entirely
 - [ ] Retro-check: are existing ECE false positives heart-adjacent? (TS heart mask vs
       ECE-positive region locations — cheap and informative for the current paper's Discussion)

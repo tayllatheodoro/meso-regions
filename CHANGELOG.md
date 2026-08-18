@@ -3,6 +3,14 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.7.0] — 2026-08-18
+
+### Added
+- `meso_regions/experimental/dynamic_band.py` — EXPERIMENTAL enhancement-guided dynamic
+  pleural band (lungs∪effusion surface, per-sector t270−t0 profiles, adaptive extent,
+  anatomical organ exclusion). Expert-validated prototype on 2 patients; not used in
+  published results. See ROADMAP Phase 2.
+
 ## [0.6.0] — 2026-08-17
 
 ### Added
