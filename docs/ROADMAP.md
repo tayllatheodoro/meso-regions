@@ -41,7 +41,10 @@ al., ISBI 2026 poster 1571238881 (mammographic skin thickness for IBC):**
    exists); (c) explicit heart + great-vessel exclusion mask from TotalSegmentator-MRI.
 6. **Validation** — coverage vs the published band, overlap with expert ECE regions, effect on
    the 3-split metrics; registration quality is an explicit dependency (subtraction).
-- [ ] Prototype on the ~31 patients with local native volumes + fluid masks
+- [x] Single-patient prototype (325, BAPE): pleural signature confirmed, organ exclusion
+      works, band covers both hemithoraces — see paper3_exploration/FINDINGS.md (2026-08-18)
+- [ ] Fine surface-patch sectors (~hundreds) to tighten extents off the cap
+- [ ] Batch the ~31 patients with local native volumes + fluid masks
 - [ ] Adaptive per-sector extent replaces the fixed dilation radius entirely
 - [ ] Retro-check: are existing ECE false positives heart-adjacent? (TS heart mask vs
       ECE-positive region locations — cheap and informative for the current paper's Discussion)
