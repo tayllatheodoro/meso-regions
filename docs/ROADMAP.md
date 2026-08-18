@@ -80,7 +80,7 @@ built. Ships after the RCTI paper is submitted.
 `meso-regions-results/paper3_exploration/FINDINGS.md`):** phenotype-composition model at
 chance (AUC 0.46); ECE-burden refuted (BAPE median burden 0.071 ≈ mesothelioma 0.068 — benign
 inflamed pleura enhances fractionally like tumour); std-curve heterogeneity uninformative
-(AUC 0.52). Region count predicts (AUC 0.69) but is an effusion-size confound; the mean-region-volume fragmentation signal (AUC 0.66) was MOVED INTO the RCTI paper as an exploratory result (2026-08-18). Conclusion:
+(AUC 0.52). Region count predicts (AUC 0.69) but is an effusion-size confound; the mean-region-volume fragmentation signal (AUC 0.66, DISF-specific; SLIC control at chance 0.48) was evaluated as a classifier on the published splits (acc 0.56, AUC 0.59 — below the rule; sarcomatoid 1/4) and REMOVED from the RCTI paper (T.M.T. decision 2026-08-18) — reserved for paper 3 as texture motivation. Full results: geometry_features.csv, geometry_classifier_metrics.csv. Conclusion:
 mean-intensity dynamics are exhausted at region AND patient level; the standing candidates
 are texture radiomics on the volumes (needs full registered volumes from Drive/lab) and the
 CT-informed pleural mask.
