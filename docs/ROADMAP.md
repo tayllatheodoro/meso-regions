@@ -13,16 +13,28 @@ every upgrade below must be benchmarked against it on the same 3 data splits.
 - [ ] Smoke test on one synthetic/phantom patient + CI (GitHub Actions)
 - [ ] Document DISF/libIFT build steps or vendor a pip-installable binding
 
-## Phase 2 — pleural mask v2
+## Phase 2 — pleural mask v2: enhancement-guided dynamic rim
 
-The current mask (effusion dilation minus fluid) has two known failure modes, observed by T.M.T.:
-pleural lumps around the lungs that lie outside the band, and non-pleural tissue inside it.
+The current mask (fixed 2-voxel effusion dilation minus fluid) has two failure modes observed
+by T.M.T.: pleural lumps around the lungs outside the band, and non-pleura inside it.
 
-- [ ] Lung-segmentation-guided band: union of (lung-surface rim) and (effusion rim), then refine —
-      candidate lung masks from TotalSegmentator or the existing `lung_segmentation` experiments
-- [ ] Quantify coverage change vs the published band (per-patient volume, overlap with expert
-      ECE regions, effect on the 3-split classification metrics)
-- [ ] Adaptive dilation radius by disease morphology (macro-nodular cases needed 3 voxels vs 2)
+**Design (2026-08-18), adapting the layer/section skin-segmentation approach of Gallegos et
+al., ISBI 2026 poster 1571238881 (mammographic skin thickness for IBC):**
+
+1. **Reference surface** — hole-filled TotalSegmentator-MRI lungs (validated 2026-08-18 on
+   patient 116: 30 s/patient CPU, correct even with collapsed lung; see
+   `paper3_exploration/ts116_lungs_pilot.png`) ∪ effusion surface (existing fluid masks).
+2. **Enhancement signal** — subtraction image t270 − t0 on the registered stack (pleura and
+   other vascular tissue are near-invisible at t=0 and highlighted at t>0 — T.M.T.).
+3. **Dynamic rim** — 1-voxel distance shells marching outward from the surface, per surface
+   sector; the local band extent ends where the per-sector subtraction-signal profile decays
+   past its peak (with a max-thickness cap to reject enhancing blobs like vessels/heart).
+4. **Byproduct biomarker** — per-sector pleural THICKNESS map (pleural thickening is an
+   established malignancy criterion on CT; an MRI thickness map is novel, interpretable output).
+5. **Validation** — coverage vs the published band, overlap with expert ECE regions, effect on
+   the 3-split metrics; registration quality is an explicit dependency (subtraction).
+- [ ] Prototype on the ~31 patients with local native volumes + fluid masks
+- [ ] Adaptive per-sector extent replaces the fixed dilation radius entirely
 
 ## Phase 3 — NEXT UP: clustering + radiomics with existing masks (paper 3)
 
