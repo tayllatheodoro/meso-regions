@@ -24,21 +24,55 @@ pleural lumps around the lungs that lie outside the band, and non-pleural tissue
       ECE regions, effect on the 3-split classification metrics)
 - [ ] Adaptive dilation radius by disease morphology (macro-nodular cases needed 3 voxels vs 2)
 
-## Phase 3 — modernization candidates (field moved since ~2023)
+## Phase 3 — NEXT UP: clustering + radiomics with existing masks (paper 3)
 
-Swap-in replacements to evaluate, one at a time, against the baseline:
+Agreed scope (2026-08-17) — one contained study, every input already on disk, nothing new
+built. Ships after the RCTI paper is submitted.
 
-- **Segmentation**: TotalSegmentator (lungs, +pleural effusion class where available),
-  nnU-Net trained on the released 4D effusion ground truth (n=56) — could remove the
-  interactive seeding step entirely
-- **Interactive fallback**: MedSAM / SAM-Med3D-style promptable segmentation instead of
-  IFT seed placement
-- **Registration**: learning-based deformable registration (SynthMorph/VoxelMorph-class) vs
-  ANTs SyN — faster, possibly better for large effusion deformation
-- **Descriptor**: per-superspel radiomics feature trajectories (PyRadiomics) replacing
-  mean-intensity curves — planned second-pass experiment for the journal paper
-- **Classifier**: learned patient-level model over superspel features vs the rule — only with
-  proper nested validation given n=56
+1. **DISF regions only** (SLIC regions ~330 voxels — too small for texture statistics);
+   existing pleural masks and the published 3 splits.
+2. **Features per superspel**: existing mean-intensity curves + existing std-curves
+   (within-region heterogeneity) + PyRadiomics (IBSI-standard settings) on the registered
+   volumes inside each region. Registered-domain interpolation stated as a limitation,
+   not made a prerequisite study.
+3. **Enhancement-phenotype clustering**: k-means (k≈4–6) on normalized trajectories →
+   per-patient composition vectors ("habitat" style).
+4. **One simple model**: regularized logistic regression on composition + ECE burden
+   (fraction of rule-positive superspels), grouped CV on the same splits.
+5. **One question**: does specificity improve over the mean-intensity ECE rule,
+   especially in BAPE?
+
+Groundwork already done: superspel curve-shape t-SNE over all 56 patients
+(`meso-regions-results/superspel_embedding.csv`) shows malignant/benign overlap in
+curve-shape space — the motivation for texture features.
+
+## Phase 3a — external validation on open breast DCE-MRI
+
+An open DCE-MRI dataset as comparison/benchmark for the follow-up study. Candidates:
+MAMA-MIA (~1,500 cases with expert primary-tumour segmentations, aggregated from
+Duke / ISPY1 / ISPY2 / NACT), Duke-Breast-Cancer-MRI (TCIA, 922 patients),
+QIN Breast DCE-MRI (TCIA). Value:
+
+- **Generalizability**: supervoxel + enhancement-trajectory analysis on a different
+  organ/cancer with known tumour masks — tests that the method is not pleura-specific.
+- **Scale**: radiomics/clustering experiments at n≫56 before applying them to the
+  pleural cohort.
+- **Reproducibility**: a fully public end-to-end example for the repo — and a
+  governance-free bundled case for the Gradio demo / Hugging Face Space.
+
+## Phase 3b — parked (not abandoned; revisit after paper 3)
+
+- **CT-informed pleural mask**: Kevin Blyth's CT pleural segmentation on paired patients —
+  first quantify how much true pleura the effusion-dilation band misses (CT→MRI transfer,
+  `utils/reg_CT_MRI.py` exists), then consider it as search space or weak supervision for
+  an MRI pleura segmenter. Caution: thoracic CT↔MRI registration error vs pleura thickness,
+  scan-interval effusion changes.
+- **Registered vs original domain**: measure curves on native intensities via the
+  inverse-warped superspel masks (already computed in `experiments/inv_mask_superpixel/`);
+  robustness analysis, becomes mandatory before any texture-feature clinical claim.
+- **Modernization swaps**: TotalSegmentator / nnU-Net effusion segmentation (removes
+  interactive seeding), MedSAM-style prompting, learned registration (SynthMorph-class).
+- **Mask v2** (lung-surface band) — superseded in priority by the CT-informed mask above.
 
 ## Phase 3.5 — cohort-level "superspel atlas" (linked-views pattern)
 
