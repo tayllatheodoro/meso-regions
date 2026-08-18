@@ -159,6 +159,14 @@ def cmd_report(args):
     return 0
 
 
+def cmd_convert(args):
+    from meso_regions.convert import convert_dicom_tree
+    written = convert_dicom_tree(args.dicom_dir, args.output,
+                                 pattern=args.name_pattern)
+    print(f"converted {len(written)} series -> {args.output}")
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="meso-regions",
@@ -198,11 +206,24 @@ def main(argv=None):
                        help="skip the slice slider (smaller file)")
     rep_p.add_argument("-o", "--output", required=True, help="output .html")
 
+    conv_p = sub.add_parser(
+        "convert", help="convert DICOM series to the NIfTI layout the "
+                        "pipeline expects")
+    conv_p.add_argument("--dicom-dir", required=True,
+                        help="root directory containing DICOM series folders")
+    conv_p.add_argument("-o", "--output", required=True,
+                        help="output directory for NIfTI files")
+    conv_p.add_argument("--name-pattern", default=None,
+                        help="regex with two groups (patient, time) applied "
+                             "to series folder names, e.g. "
+                             "'(\\d+)_(\\d+)' -> <patient>_<time>.nii.gz")
+
     args = parser.parse_args(argv)
     return {"stages": cmd_stages,
             "example-config": cmd_example_config,
             "run": cmd_run,
-            "report": cmd_report}[args.command](args)
+            "report": cmd_report,
+            "convert": cmd_convert}[args.command](args)
 
 
 if __name__ == "__main__":

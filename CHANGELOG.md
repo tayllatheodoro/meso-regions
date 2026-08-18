@@ -3,6 +3,16 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.8.0] — 2026-08-18
+
+### Added
+- `meso-regions convert` — DICOM→NIfTI ingestion (`meso_regions/convert.py`): walks a tree
+  of DICOM series folders and produces the `<patient>_<time>.nii.gz` layout the pipeline
+  expects. dcm2niix primary, SimpleITK fallback; success judged by output presence.
+- Claude Code skill (`.claude/skills/run-meso-regions/`) — agents can drive the full
+  pipeline conversationally: convert → configure → dry-run → run → report.
+- README "From DICOM" quickstart.
+
 ## [0.7.0] — 2026-08-18
 
 ### Added

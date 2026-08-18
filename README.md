@@ -49,6 +49,19 @@ SLIC works out of the box via scikit-image.
 
 ## Usage
 
+### From DICOM
+
+Doctors and researchers can start directly from exported DICOM series:
+
+```bash
+meso-regions convert --dicom-dir /path/to/dicom_series -o nifti/ --name-pattern '(\d+)_(\d+)'
+```
+
+This produces the `<patient>_<time>.nii.gz` layout the pipeline expects (uses dcm2niix,
+`pip install dcm2niix`; SimpleITK fallback). All processing is local — no data upload.
+
+### Pipeline
+
 The pipeline is driven by a YAML config through the `meso-regions` CLI:
 
 ```bash
