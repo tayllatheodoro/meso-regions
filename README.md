@@ -32,6 +32,12 @@ from Theodoro et al., IEEE ISBI 2026, © 2026 IEEE).*
 *Patient-mean peak-normalised signal-intensity curves stratified by histology (shaded bands:
 SEM), for SLIC and DISF partitions.*
 
+**Intended clinical context (research vision).** Meso-Regions is designed as a *triage and
+attention-focusing* aid, not a diagnostic classifier: for patients with suspected pleural
+malignancy without obvious nodules, the pipeline highlights ECE-positive regions on DCE-MRI so
+the clinician can review them and decide whether to expedite biopsy — which remains the
+diagnostic reference standard. Each flagged region is traceable to its enhancement curve.
+
 > ⚠️ **Research use only.** This software is not a medical device and must not be used for
 > clinical diagnosis or treatment decisions.
 
