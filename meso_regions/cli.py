@@ -140,9 +140,15 @@ def cmd_run(args):
 
     from meso_regions.mesoECE.experiment import Experiment
     experiment = Experiment(**exp_kwargs)
-    experiment.execute_pipeline()
-    metrics = experiment.classifier_metrics()
-    print(metrics)
+    try:
+        experiment.execute_pipeline()
+        metrics = experiment.classifier_metrics()
+        print(metrics)
+    except Exception as exc:
+        # cohort metrics are undefined for tiny/single-class runs (e.g. one
+        # patient); per-patient outputs are still written by the stages
+        print(f"note: cohort metrics unavailable ({type(exc).__name__}: {exc})")
+    print(f"outputs: {exp_kwargs['path_experiments'] / exp_kwargs['experiment_name']}")
     return 0
 
 

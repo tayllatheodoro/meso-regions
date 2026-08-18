@@ -3,6 +3,18 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.8.1] — 2026-08-18
+
+### Fixed
+- `meso-regions run` no longer crashes when cohort metrics are undefined (single patient /
+  single class); per-patient outputs are always written and the output path is printed.
+
+### Verified
+- Full pipeline smoke test with REAL data (patient 14): DICOM-lineage volumes →
+  dilate → SLIC → ECE via the CLI; correct malignant call (78 ECE+ superspels).
+  Found + fixed: published dilated masks are on the resampled 1.78 grid (225³) and do not
+  match native-grid images — use fluid GT + the pipeline's dilate stage instead.
+
 ## [0.8.0] — 2026-08-18
 
 ### Added
