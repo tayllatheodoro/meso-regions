@@ -42,6 +42,15 @@ built. Ships after the RCTI paper is submitted.
 5. **One question**: does specificity improve over the mean-intensity ECE rule,
    especially in BAPE?
 
+**Status 2026-08-18 — curve-based arm complete, three negatives (see
+`meso-regions-results/paper3_exploration/FINDINGS.md`):** phenotype-composition model at
+chance (AUC 0.46); ECE-burden refuted (BAPE median burden 0.071 ≈ mesothelioma 0.068 — benign
+inflamed pleura enhances fractionally like tumour); std-curve heterogeneity uninformative
+(AUC 0.52). Region count predicts (AUC 0.69) but is an effusion-size confound. Conclusion:
+mean-intensity dynamics are exhausted at region AND patient level; the standing candidates
+are texture radiomics on the volumes (needs full registered volumes from Drive/lab) and the
+CT-informed pleural mask.
+
 Groundwork already done: superspel curve-shape t-SNE over all 56 patients
 (`meso-regions-results/superspel_embedding.csv`) shows malignant/benign overlap in
 curve-shape space — the motivation for texture features.
