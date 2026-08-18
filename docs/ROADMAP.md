@@ -21,9 +21,11 @@ by T.M.T.: pleural lumps around the lungs outside the band, and non-pleura insid
 **Design (2026-08-18), adapting the layer/section skin-segmentation approach of Gallegos et
 al., ISBI 2026 poster 1571238881 (mammographic skin thickness for IBC):**
 
-1. **Reference surface** — hole-filled TotalSegmentator-MRI lungs (validated 2026-08-18 on
-   patient 116: 30 s/patient CPU, correct even with collapsed lung; see
-   `paper3_exploration/ts116_lungs_pilot.png`) ∪ effusion surface (existing fluid masks).
+1. **Reference surface** — lungs ∪ effusion. Lung source: T.M.T.'s CT→MRI transferred masks
+   (49 patients, `masks/lung_registration_from_ct_to_mri_...`) — TotalSegmentator-MRI looked
+   plausible on moderate cases (116, 325; 30 s/patient CPU) but HALLUCINATED lung inside the
+   collapsed lung on severe disease (patient 14, expert-validated 2026-08-18), so TS is kept
+   only for organ-exclusion masks. Effusion: doctor-inspected fluid GT (all 56).
 2. **Enhancement signal** — subtraction image t270 − t0 on the registered stack (pleura and
    other vascular tissue are near-invisible at t=0 and highlighted at t>0 — T.M.T.).
 3. **Dynamic rim** — 1-voxel distance shells marching outward from the surface, per surface
