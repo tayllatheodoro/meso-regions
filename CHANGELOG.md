@@ -3,6 +3,15 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.5.0] — 2026-08-17
+
+### Added
+- Report: linked interactive viewer — the slice viewer is now a client-side canvas
+  compositing the embedded ECE label map, and the curves are clickable inline SVG.
+  Clicking a region isolates its curve; clicking a curve isolates its region
+  (Esc or re-click to reset). Mouse-wheel and slider slice navigation retained.
+  Still a single self-contained file with no JS libraries and no data upload.
+
 ## [0.4.1] — 2026-08-17
 
 ### Changed
