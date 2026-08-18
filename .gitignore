@@ -8,3 +8,4 @@ dist/
 *.nii
 *.nii.gz
 *.ipynb_checkpoints/
+demo/data/

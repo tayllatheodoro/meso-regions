@@ -3,6 +3,18 @@
 All notable changes to Meso-Regions are documented here.
 Versioning follows [SemVer](https://semver.org); 0.x versions may break APIs between minors.
 
+## [0.6.0] — 2026-08-17
+
+### Added
+- Gradio demo app (`demo/app.py`): browser UI over one example case — slice slider,
+  region isolation dropdown linked to the curves plot, patient-level call. Example data
+  lives in gitignored `demo/data/` (PREDICT-Meso governance) until a shareable case is
+  confirmed; ready to publish as a Hugging Face Space then.
+
+### Changed
+- Roadmap: cohort atlas phrased implementation-neutral (Dash/Panel app or an existing
+  embedding browser), not tied to any specific external tool
+
 ## [0.5.0] — 2026-08-17
 
 ### Added
